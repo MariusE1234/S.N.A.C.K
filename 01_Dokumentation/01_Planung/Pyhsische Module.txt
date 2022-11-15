@@ -1,0 +1,9 @@
+Physische Module:
+
+- Tastenfeld (Display, Zahlenfelder 1-9, * und # Taste)
+- Bezahlmodul (Münzen, Scheine, NFC)
+- Ausgabemodul
+- Artikelmodule
+	> Standard (für Snacks, Zigaretten, getränke, etc)
+	> mit Kühlfunktion (für Getränke, Eis, etc.)
+	> mit Heizfunktion (für Pizzastücke, etc.)
