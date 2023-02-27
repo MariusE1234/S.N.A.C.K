@@ -26,3 +26,16 @@ Das Programm soll folgende Anforderungen haben:
 7.    Der Wechsel in den Bearbeitungsmodus soll mittels eines Buttons durchgeführt werden und zum normal betrieb auch 
 
 Hör erst auf wenn du den Code fertig hast
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+Anpassung Marius
+
+Erstelle mir ein pythonprogramm, welches einen virtuellen Verkaufsautomaten darstellt.
+
+Das Programm soll folgende Anforderungen haben:
+1. Der Programmcode für die Logik des Automaten soll eine eigene Klasse sein
+2. Das Programm soll eine eigene Klasse für die grafische Oberfläche mit Buttons haben
+3. Der Automat soll verschiede Produkte anbieten gemischt aus Snacks und Getränken und in 3 Spalten auf der linken Seite dargestellt werden
+4. Die Angebotenen Produkte inkl. Preise sollen eine eigenen Klasse sein
+5. Es soll einen Button "Münzen einwerfen" geben der ein seperates Fenster öffnet
+6. Es soll einen Button "Konfigurationsmenü" geben der ein seperates Fenster öffnet
