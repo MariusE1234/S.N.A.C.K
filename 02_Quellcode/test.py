@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 
 class Product:
     def __init__(self, name, price):
@@ -7,7 +8,7 @@ class Product:
 
 class VendingMachine:
     def __init__(self):
-        self.products = [Product("Chips", 1.50), Product("Cola", 2.00), Product("Water", 1.00)]
+        self.products = [Product("Chips", 1.50), Product("Cola", 2.00), Product("Water", 1.00), Product("M&M`s", 1.00)]
         self.balance = 0.0
 
     def insert_coin(self, amount):
@@ -34,7 +35,7 @@ class VendingMachineGUI:
         for i in range(len(self.vending_machine.products)):
             product = self.vending_machine.products[i]
             button = tk.Button(self.root, text=product.name+"\n"+str(product.price)+"$", command=lambda index=i: self.buy_product(index))
-            button.grid(row=i+1, column=2)
+            button.grid(row=i+1, column=1)
 
         coin_button = tk.Button(self.root, text="Insert Coin", command=self.open_coin_window)
         coin_button.grid(row=len(self.vending_machine.products)+1, column=0)
