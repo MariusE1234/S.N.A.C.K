@@ -37,5 +37,9 @@ Das Programm soll folgende Anforderungen haben:
 2. Das Programm soll eine eigene Klasse für die grafische Oberfläche mit Buttons haben
 3. Der Automat soll verschiede Produkte anbieten gemischt aus Snacks und Getränken und in 3 Spalten auf der linken Seite dargestellt werden
 4. Die Angebotenen Produkte inkl. Preise sollen eine eigenen Klasse sein
-5. Es soll einen Button "Münzen einwerfen" geben der ein seperates Fenster öffnet
-6. Es soll einen Button "Konfigurationsmenü" geben der ein seperates Fenster öffnet
+5. Es soll einen Button "Münzen einwerfen" geben der ein seperates Fenster öffnet und eine eigene Klasse ist
+6. Es soll einen Button "Konfigurationsmenü" geben der ein seperates Fenster öffnet und eine eigene Klasse ist
+7. Schreibe mindestens 10 Unit Tests und verwende ATRIP-Regeln, Code Coverage und setze Mocks ein. Makiere den Einsatz im Quellcode mittels kommentare
+8. Verwende die Programming Principles SOLID, GRASP und DRY. Makiere den Einsatz im Quellcode mittels kommentare
+9. Verwende mindestens zwei Schichten der Clean Architecture. 
+10. Setze ein Entwurfsmuster ein
