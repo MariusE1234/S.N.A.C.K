@@ -37,7 +37,7 @@ class CoinSlot:
         self.coins.append(coin)
 
     def get_total_amount(self):
-        total_amount = 0
+        total_amount = 0.0
         for coin in self.coins:
             total_amount += coin.value
         return total_amount
@@ -71,7 +71,7 @@ class CoinsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
-        self.coins = [Coin(0.1), Coin(0.2), Coin(0.5), Coin(1), Coin(2)]
+        self.coins = [Coin(0.05), Coin(0.1), Coin(0.2), Coin(0.5), Coin(1), Coin(2)]
         self.selected_coin = None
         self.setup_ui()
 
@@ -180,6 +180,10 @@ class VendingMachineGUI(QWidget):
     def buy_product(self):
         message = self.vending_machine.buy_product()
         self.status_label.setText(message)
+        #CHECK---------------------------
+        amount = f"{self.vending_machine.coin_slot.get_total_amount()} €"
+        self.coin_label.setText(str(amount))
+        #--------------------------------
 
     def show_coin_dialog(self):
         dialog = CoinsDialog(self)
