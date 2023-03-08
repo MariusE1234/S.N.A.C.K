@@ -1,6 +1,8 @@
 import sys
 import PyQt5
 from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QTableWidget, QWidget
+
+
 class Product:
     def __init__(self, name, price):
         self.name = name
