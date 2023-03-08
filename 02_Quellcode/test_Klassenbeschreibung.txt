@@ -1,8 +1,0 @@
-
-In diesem Programm gibt es drei Klassen:
-
-- `Product`: Eine Klasse, die ein Produkt repräsentiert, das im Automaten angeboten wird. Ein Produkt hat einen Namen und einen Preis.
-- `VendingMachine`: Eine Klasse, die die Logik des Automaten implementiert. Der Automat hat eine Liste von Produkten und einen aktuellen Kontostand (d.h. wie viel Geld der Benutzer eingeworfen hat). Es gibt zwei Methoden: `insert_coin`, um eine Münze einzulegen, und `get_product`, um ein Produkt zu kaufen.
-- `VendingMachineGUI`: Eine Klasse, die die grafische Benutzeroberfläche des Automaten implementiert. Es gibt ein Hauptfenster mit Labels für den aktuellen Kontostand und eine Liste von Produkten mit Buttons zum Kauf. Es gibt auch zwei Buttons für das Einlegen von Münzen und das Öffnen des Konfigurationsmenüs. Wenn der Benutzer einen Kauf tätigt oder eine Münze einlegt, wird ein separates Fenster geöffnet, um die Eingabe zu akzeptieren.
-
-Die `VendingMachineGUI`-Klasse verwendet die `VendingMachine`-Klasse, um die Logik des Automaten auszuführen. Die GUI wird mit der `run`-Methode gestartet.
