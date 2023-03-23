@@ -148,10 +148,10 @@ class CoinsDialog(QDialog):
         self.selected_coin = coin
 
 class ConfigDialog(QDialog):
-    def __init__(self, parent=None, transaction_log=None):
+    def __init__(self, parent=None, transaction_log=None, product_list=None):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
-        self.product_list = ProductList()
+        self.product_list = product_list
         self.transaction_log = transaction_log
         self.setup_ui()
 
@@ -275,10 +275,11 @@ class VendingMachineGUI(QWidget):
             button.clicked.connect(lambda _, p=product: self.select_product(p))
 
     def show_config_dialog(self):
-        dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log)
+        dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
         if dialog.exec_() == QDialog.Accepted:
             self.vending_machine.product_list.products = dialog.get_products()
             self.update_product_buttons()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
