@@ -1,7 +1,33 @@
 import sys
 import PyQt5
+import datetime
 from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QTableWidget, QWidget
 
+class Transaction:
+    def __init__(self, product, amount_paid):
+        self.product = product
+        self.amount_paid = amount_paid
+        self.timestamp = datetime.datetime.now()
+
+    def __str__(self):
+        return f"{self.timestamp}: {self.product} - {self.amount_paid} €"
+
+
+class TransactionLog:
+    def __init__(self):
+        self.transactions = []
+
+    def add_transaction(self, transaction):
+        self.transactions.append(transaction)
+
+    def get_transactions(self):
+        return self.transactions
+
+    def get_total_sales(self):
+        total_sales = 0
+        for transaction in self.transactions:
+            total_sales += transaction.product.price
+        return total_sales
 
 class Product:
     def __init__(self, name, price):
@@ -46,9 +72,10 @@ class CoinSlot:
         self.coins = []
 
 class VendingMachine:
-    def __init__(self):
-        self.product_list = ProductList()
-        self.coin_slot = CoinSlot()
+    def __init__(self, product_list, coin_slot, transaction_log):  # Dependency Injection
+        self.product_list = product_list
+        self.coin_slot = coin_slot
+        self.transaction_log = transaction_log
         self.selected_product = None
 
     def select_product(self, product):
@@ -61,6 +88,8 @@ class VendingMachine:
             return "Sie haben nicht genug Geld eingeworfen."
         self.coin_slot.reset()
         product_bought = self.selected_product.name
+        transaction = Transaction(self.selected_product, self.selected_product.price)
+        self.transaction_log.add_transaction(transaction)
         self.selected_product = None
         return f"Vielen Dank für Ihren Einkauf: {product_bought}"
 
@@ -139,7 +168,10 @@ class ConfigDialog(QDialog):
 class VendingMachineGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.vending_machine = VendingMachine()
+        product_list = ProductList()
+        coin_slot = CoinSlot()
+        transaction_log = TransactionLog()
+        self.vending_machine = VendingMachine(product_list, coin_slot, transaction_log)  # Dependency Injection
         self.setup_ui()
 
     def setup_ui(self):
