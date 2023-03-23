@@ -162,7 +162,7 @@ class ConfigDialog(QDialog):
         product_layout = QVBoxLayout()
         self.product_table = QTableWidget()
         self.product_table.setColumnCount(2)
-        self.product_table.setRowCount(len(self.product_list.products))  # Zeile hinzufügen
+        self.product_table.setRowCount(len(self.product_list.products))
         self.product_table.setHorizontalHeaderLabels(["Produkt", "Preis"])
         self.product_table.verticalHeader().setVisible(False)
 
@@ -174,6 +174,18 @@ class ConfigDialog(QDialog):
 
         self.product_table.resizeColumnsToContents()
         product_layout.addWidget(self.product_table)
+
+        # Schaltflächen zum Hinzufügen und Löschen von Produkten
+        button_layout = QHBoxLayout()
+        self.add_button = QPushButton("Produkt hinzufügen")
+        self.add_button.clicked.connect(self.add_product)
+        button_layout.addWidget(self.add_button)
+
+        self.delete_button = QPushButton("Produkt löschen")
+        self.delete_button.clicked.connect(self.delete_product)
+        button_layout.addWidget(self.delete_button)
+
+        product_layout.addLayout(button_layout)
 
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
@@ -198,6 +210,15 @@ class ConfigDialog(QDialog):
 
         layout.addLayout(transaction_layout)
         self.setLayout(layout)
+
+    def add_product(self):
+        row = self.product_table.rowCount()
+        self.product_table.setRowCount(row + 1)
+
+    def delete_product(self):
+        row = self.product_table.currentRow()
+        if row != -1:
+            self.product_table.removeRow(row)
 
 
     def get_products(self):
@@ -278,7 +299,21 @@ class VendingMachineGUI(QWidget):
         dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
         if dialog.exec_() == QDialog.Accepted:
             self.vending_machine.product_list.products = dialog.get_products()
-            self.update_product_buttons()
+            self.refresh_product_buttons()
+
+
+    def refresh_product_buttons(self):
+        for button in self.product_buttons:
+            button.setParent(None)
+
+        self.product_buttons = []
+
+        for i, product in enumerate(self.vending_machine.get_products()):
+            button = QPushButton(str(product))
+            button.clicked.connect(lambda _, p=product: self.select_product(p))
+            self.product_buttons.append(button)
+            self.layout().addWidget(button, i // 3, i % 3)
+
 
 
 if __name__ == "__main__":
