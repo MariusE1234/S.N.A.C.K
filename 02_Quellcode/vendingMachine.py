@@ -49,11 +49,17 @@ class ProductList:
         ]
 
 class Coin:
+    available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
+
     def __init__(self, value):
-        self.value = value
+        if value in Coin.available_coins:
+            self.value = value
+        else:
+            raise ValueError("Ungültiger Münzwert")
 
     def __str__(self):
         return f"{self.value} €"
+
 
 class CoinSlot:
     def __init__(self):
@@ -68,8 +74,20 @@ class CoinSlot:
             total_amount += coin.value
         return total_amount
 
+    def sub_coin(self, amount):
+        if amount > self.get_total_amount():
+            raise ValueError("Betrag ist größer als das verfügbare Guthaben")
+        remaining_amount = self.get_total_amount() - amount
+        self.reset()
+        for coin_value in reversed(Coin.available_coins):
+            while remaining_amount >= coin_value:
+                self.add_coin(Coin(coin_value))
+                remaining_amount -= coin_value
+        return self.coins
+
     def reset(self):
         self.coins = []
+
 
 class VendingMachine:
     def __init__(self, product_list, coin_slot, transaction_log):  # Dependency Injection
@@ -86,7 +104,7 @@ class VendingMachine:
             return "Bitte wählen Sie ein Produkt aus."
         if self.selected_product.price > self.coin_slot.get_total_amount():
             return "Sie haben nicht genug Geld eingeworfen."
-        self.coin_slot.reset()
+        self.coin_slot.sub_coin(self.selected_product.price)
         product_bought = self.selected_product.name
         transaction = Transaction(self.selected_product, self.selected_product.price)
         self.transaction_log.add_transaction(transaction)
@@ -100,7 +118,7 @@ class CoinsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
-        self.coins = [Coin(0.05), Coin(0.1), Coin(0.2), Coin(0.5), Coin(1), Coin(2)]
+        self.coins = [Coin(value) for value in Coin.available_coins]
         self.selected_coin = None
         self.setup_ui()
 
