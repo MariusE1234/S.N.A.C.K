@@ -1,7 +1,8 @@
 import sys
 import PyQt5
 import datetime
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QTableWidget, QWidget
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget
+
 
 class Transaction:
     def __init__(self, product, amount_paid):
@@ -146,14 +147,18 @@ class CoinsDialog(QDialog):
         self.selected_coin = coin
 
 class ConfigDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, transaction_log=None):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
         self.product_list = ProductList()
+        self.transaction_log = transaction_log
         self.setup_ui()
 
     def setup_ui(self):
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
+
+        # Produkte
+        product_layout = QVBoxLayout()
         self.product_table = QTableWidget()
         self.product_table.setColumnCount(2)
         self.product_table.setHorizontalHeaderLabels(["Produkt", "Preis"])
@@ -166,12 +171,30 @@ class ConfigDialog(QDialog):
             self.product_table.setItem(i, 1, price_item)
 
         self.product_table.resizeColumnsToContents()
-        layout.addWidget(self.product_table)
+        product_layout.addWidget(self.product_table)
 
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
-        layout.addWidget(self.ok_button)
+        product_layout.addWidget(self.ok_button)
 
+        layout.addLayout(product_layout)
+
+        # Transaktionen
+        transaction_layout = QVBoxLayout()
+        transaction_label = QLabel("Transaktionen")
+        transaction_layout.addWidget(transaction_label)
+
+        self.transaction_list = QListWidget()
+        if self.transaction_log:
+            for transaction in self.transaction_log.get_transactions():
+                self.transaction_list.addItem(str(transaction))
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.transaction_list)
+        transaction_layout.addWidget(scroll_area)
+
+        layout.addLayout(transaction_layout)
         self.setLayout(layout)
 
     def get_products(self):
@@ -241,11 +264,18 @@ class VendingMachineGUI(QWidget):
             self.vending_machine.coin_slot.add_coin(dialog.selected_coin)
             self.coin_label.setText(f"{self.vending_machine.coin_slot.get_total_amount()} €")
     
+    def update_product_buttons(self):
+        for i, product in enumerate(self.vending_machine.get_products()):
+            button = self.product_buttons[i]
+            button.setText(str(product))
+            button.clicked.disconnect()
+            button.clicked.connect(lambda _, p=product: self.select_product(p))
+
     def show_config_dialog(self):
-        dialog = ConfigDialog(self)
+        dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log)
         if dialog.exec_() == QDialog.Accepted:
             self.vending_machine.product_list.products = dialog.get_products()
-            self.setup_ui()
+            self.update_product_buttons()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
