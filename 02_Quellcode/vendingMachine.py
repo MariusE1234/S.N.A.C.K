@@ -162,6 +162,7 @@ class ConfigDialog(QDialog):
         product_layout = QVBoxLayout()
         self.product_table = QTableWidget()
         self.product_table.setColumnCount(2)
+        self.product_table.setRowCount(len(self.product_list.products))  # Zeile hinzufügen
         self.product_table.setHorizontalHeaderLabels(["Produkt", "Preis"])
         self.product_table.verticalHeader().setVisible(False)
 
@@ -197,6 +198,7 @@ class ConfigDialog(QDialog):
 
         layout.addLayout(transaction_layout)
         self.setLayout(layout)
+
 
     def get_products(self):
         products = []
