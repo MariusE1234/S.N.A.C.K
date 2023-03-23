@@ -46,9 +46,9 @@ class CoinSlot:
         self.coins = []
 
 class VendingMachine:
-    def __init__(self):
-        self.product_list = ProductList()
-        self.coin_slot = CoinSlot()
+    def __init__(self, product_list, coin_slot):  # DI hier
+        self.product_list = product_list
+        self.coin_slot = coin_slot
         self.selected_product = None
 
     def select_product(self, product):
@@ -139,7 +139,9 @@ class ConfigDialog(QDialog):
 class VendingMachineGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.vending_machine = VendingMachine()
+        product_list = ProductList()
+        coin_slot = CoinSlot()
+        self.vending_machine = VendingMachine(product_list, coin_slot)  # DI hier
         self.setup_ui()
 
     def setup_ui(self):
