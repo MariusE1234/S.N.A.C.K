@@ -11,7 +11,8 @@ class Transaction:
         self.timestamp = datetime.datetime.now()
 
     def __str__(self):
-        return f"{self.timestamp}: {self.product} - {self.amount_paid} €"
+        formatted_timestamp = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Format ohne Nachkommastellen
+        return f"{formatted_timestamp} : {self.product.name} {self.amount_paid} €"
 
 
 class TransactionLog:
