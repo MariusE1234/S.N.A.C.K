@@ -2,6 +2,66 @@ import sys
 import PyQt5
 import datetime
 from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget
+import sqlite3
+from sqlite3 import Error
+
+db_path = "C://Users//Marius//Documents//GitHub//S.N.A.C.K//03_SQL//database//vendingMachine.db"
+
+class Database:
+    def __init__(self, db_file):
+        self.conn = self.create_connection(db_file)
+        self.create_products_table()
+
+    def create_connection(self, db_file):
+        conn = None
+        try:
+            conn = sqlite3.connect(db_file)
+        except Error as e:
+            print(e)
+
+        return conn
+
+    def create_products_table(self):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""CREATE TABLE IF NOT EXISTS products (
+                                name TEXT PRIMARY KEY,
+                                price REAL NOT NULL
+                              );""")
+        except Error as e:
+            print(e)
+
+    def add_product(self, product):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def get_products(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT name, price FROM products")
+        rows = cursor.fetchall()
+
+        products = [Product(row[0], row[1]) for row in rows]
+        return products
+
+    def update_product(self, old_product, new_product):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("UPDATE products SET name = ?, price = ? WHERE name = ?", (new_product.name, new_product.price, old_product.name))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def delete_product(self, product):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM products WHERE name = ?", (product.name,))
+            self.conn.commit()
+        except Error as e:
+            print(e)
 
 
 class Transaction:
@@ -40,15 +100,9 @@ class Product:
         return f"{self.name} ({self.price} €)"
 
 class ProductList:
-    def __init__(self):
-        self.products = [
-            Product("Cola", 1.5),
-            Product("Fanta", 1.5),
-            Product("Sprite", 1.5),
-            Product("Chips", 0.75),
-            Product("Schokoriegel", 0.5),
-            Product("Kaugummi", 0.2)
-        ]
+    def __init__(self, database):
+        self.database = database
+        self.products = self.database.get_products()
 
 class Coin:
     available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
@@ -233,7 +287,8 @@ class ConfigDialog(QDialog):
 class VendingMachineGUI(QWidget):
     def __init__(self):
         super().__init__()
-        product_list = ProductList()
+        database = Database(db_path)  # Erstelle ein Database-Objekt
+        product_list = ProductList(database)  # Übergebe das Database-Objekt an die ProductList-Klasse
         coin_slot = CoinSlot()
         transaction_log = TransactionLog()
         self.vending_machine = VendingMachine(product_list, coin_slot, transaction_log)  # Dependency Injection
