@@ -10,6 +10,7 @@ db_path = "C://Users//Marius//Documents//GitHub//S.N.A.C.K//03_SQL//database//ve
 class Database:
     def __init__(self, db_file):
         self.conn = self.create_connection(db_file)
+        self.cur = self.conn.cursor()
         self.create_products_table()
 
     def create_connection(self, db_file):
@@ -64,20 +65,19 @@ class Database:
             print(e)
 
     def save_products(self, products):
-        existing_products = self.get_products()
-        for product in products:
-            if product not in existing_products:
-                self.add_product(product)
+        with self.conn:
+            for product in products:
+                # Prüfen, ob ein Produkt mit demselben Namen bereits in der Datenbank vorhanden ist
+                self.cur.execute("SELECT COUNT(*) FROM products WHERE name=?", (product.name,))
+                count = self.cur.fetchone()[0]
 
-        for product in existing_products:
-            if product not in products:
-                self.delete_product(product)
+                if count == 0:
+                    # Fügen Sie das Produkt hinzu, wenn es noch nicht in der Datenbank vorhanden ist
+                    self.cur.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
+                else:
+                    # Aktualisieren Sie den Eintrag, wenn das Produkt bereits in der Datenbank vorhanden ist
+                    self.cur.execute("UPDATE products SET price=? WHERE name=?", (product.price, product.name))
 
-        for product in products:
-            for existing_product in existing_products:
-                if product.name == existing_product.name and product.price != existing_product.price:
-                    self.update_product(existing_product, product)
-                    break
 
 class Transaction:
     def __init__(self, product, amount_paid):
@@ -378,16 +378,28 @@ class VendingMachineGUI(QWidget):
 
 
     def refresh_product_buttons(self):
+        # Löschen Sie alle Produkt-Buttons und entfernen Sie sie aus dem Layout
         for button in self.product_buttons:
+            button.deleteLater()
             button.setParent(None)
 
         self.product_buttons = []
 
+        # Erstellen Sie neue Produkt-Buttons und fügen Sie sie zum Layout hinzu
         for i, product in enumerate(self.vending_machine.get_products()):
             button = QPushButton(str(product))
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
             self.layout().addWidget(button, i // 3, i % 3)
+
+        # Verschieben Sie die restlichen Widgets (coin_button, config_button, buy_button, coin_label, status_label)
+        row = len(self.product_buttons) // 3 + 1
+        self.layout().addWidget(self.coin_button, row, 0)
+        self.layout().addWidget(self.config_button, row, 1)
+        self.layout().addWidget(self.buy_button, row, 2)
+        self.layout().addWidget(self.coin_label, row + 1, 0)
+        self.layout().addWidget(self.status_label, row + 1, 1, 1, 2)
+
 
 
 
