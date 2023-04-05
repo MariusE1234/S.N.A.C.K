@@ -63,6 +63,21 @@ class Database:
         except Error as e:
             print(e)
 
+    def save_products(self, products):
+        existing_products = self.get_products()
+        for product in products:
+            if product not in existing_products:
+                self.add_product(product)
+
+        for product in existing_products:
+            if product not in products:
+                self.delete_product(product)
+
+        for product in products:
+            for existing_product in existing_products:
+                if product.name == existing_product.name and product.price != existing_product.price:
+                    self.update_product(existing_product, product)
+                    break
 
 class Transaction:
     def __init__(self, product, amount_paid):
@@ -103,6 +118,10 @@ class ProductList:
     def __init__(self, database):
         self.database = database
         self.products = self.database.get_products()
+
+    def save_products(self, products):
+        self.database.save_products(products)
+        self.products = products
 
 class Coin:
     available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
@@ -353,7 +372,8 @@ class VendingMachineGUI(QWidget):
     def show_config_dialog(self):
         dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
         if dialog.exec_() == QDialog.Accepted:
-            self.vending_machine.product_list.products = dialog.get_products()
+            new_products = dialog.get_products()
+            self.vending_machine.product_list.save_products(new_products)
             self.refresh_product_buttons()
 
 
