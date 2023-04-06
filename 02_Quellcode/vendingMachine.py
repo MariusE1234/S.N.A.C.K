@@ -78,6 +78,14 @@ class Database:
                     # Aktualisieren Sie den Eintrag, wenn das Produkt bereits in der Datenbank vorhanden ist
                     self.cur.execute("UPDATE products SET price=? WHERE name=?", (product.price, product.name))
 
+    def clear_products(self):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM products")
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
 
 class Transaction:
     def __init__(self, product, amount_paid):
@@ -120,8 +128,10 @@ class ProductList:
         self.products = self.database.get_products()
 
     def save_products(self, products):
+        self.database.clear_products()  # Löschen Sie vorhandene Produkte in der Datenbank
         self.database.save_products(products)
         self.products = products
+
 
 class Coin:
     available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
@@ -286,7 +296,12 @@ class ConfigDialog(QDialog):
 
     def add_product(self):
         row = self.product_table.rowCount()
+        for i in range(row):
+            name_item = self.product_table.item(i, 0)
+            if name_item is None:
+                return
         self.product_table.setRowCount(row + 1)
+
 
     def delete_product(self):
         row = self.product_table.currentRow()
