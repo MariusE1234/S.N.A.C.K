@@ -1,11 +1,12 @@
 import sys
 import PyQt5
 import datetime
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QDoubleSpinBox
 import sqlite3
 from sqlite3 import Error
 
-db_path = "C://Users//Marius//Documents//GitHub//S.N.A.C.K//03_SQL//database//vendingMachine.db"
+db_path = "03_SQL//database//vendingMachine.db"
 
 class Database:
     def __init__(self, db_file):
@@ -252,17 +253,23 @@ class ConfigDialog(QDialog):
         for i, product in enumerate(self.product_list.products):
             name_item = QTableWidgetItem(product.name)
             price_item = QTableWidgetItem(str(product.price))
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+            price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
             self.product_table.setItem(i, 0, name_item)
             self.product_table.setItem(i, 1, price_item)
 
         self.product_table.resizeColumnsToContents()
         product_layout.addWidget(self.product_table)
 
-        # Schaltflächen zum Hinzufügen und Löschen von Produkten
+        # Schaltflächen zum Hinzufügen, Bearbeiten und Löschen von Produkten
         button_layout = QHBoxLayout()
         self.add_button = QPushButton("Produkt hinzufügen")
         self.add_button.clicked.connect(self.add_product)
         button_layout.addWidget(self.add_button)
+
+        self.edit_button = QPushButton("Produkt bearbeiten")
+        self.edit_button.clicked.connect(self.edit_product)
+        button_layout.addWidget(self.edit_button)
 
         self.delete_button = QPushButton("Produkt löschen")
         self.delete_button.clicked.connect(self.delete_product)
@@ -294,20 +301,59 @@ class ConfigDialog(QDialog):
         layout.addLayout(transaction_layout)
         self.setLayout(layout)
 
+    def is_name_unique(self, name, exclude_row=None):
+        for row in range(self.product_table.rowCount()):
+            if row != exclude_row and self.product_table.item(row, 0).text() == name:
+                return False
+        return True
+
     def add_product(self):
-        row = self.product_table.rowCount()
-        for i in range(row):
-            name_item = self.product_table.item(i, 0)
-            if name_item is None:
-                return
-        self.product_table.setRowCount(row + 1)
+        add_product_dialog = AddProductDialog(self)
+        result = add_product_dialog.exec_()
+
+        if result == QDialog.Accepted:
+            new_product = add_product_dialog.get_product()
+            if self.is_name_unique(new_product.name):
+                self.product_list.database.add_product(new_product)
+                row = self.product_table.rowCount()
+                self.product_table.setRowCount(row + 1)
+                name_item = QTableWidgetItem(new_product.name)
+                price_item = QTableWidgetItem(str(new_product.price))
+                name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+                price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
+                self.product_table.setItem(row, 0, name_item)
+                self.product_table.setItem(row, 1, price_item)
+            else:
+                QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
+
+    def edit_product(self):
+        row = self.product_table.currentRow()
+        if row != -1:
+            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text())))
+            result = edit_product_dialog.exec_()
+
+            if result == QDialog.Accepted:
+                edited_product = edit_product_dialog.get_product()
+                if self.is_name_unique(edited_product.name, exclude_row=row):
+                    current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()))
+                    self.product_list.database.update_product(current_product, edited_product)
+                    name_item = QTableWidgetItem(edited_product.name)
+                    price_item = QTableWidgetItem(str(edited_product.price))
+                    name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+                    price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
+                    self.product_table.setItem(row, 0, name_item)
+                    self.product_table.setItem(row, 1, price_item)
+                else:
+                    QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
+
 
 
     def delete_product(self):
         row = self.product_table.currentRow()
         if row != -1:
+            product_to_delete = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()))
+            self.product_list.database.delete_product(product_to_delete)  # Direkt aus der Datenbank löschen
             self.product_table.removeRow(row)
-
 
     def get_products(self):
         products = []
@@ -317,6 +363,84 @@ class ConfigDialog(QDialog):
             if name_item is not None and price_item is not None:
                 products.append(Product(name_item.text(), float(price_item.text())))
         return products
+
+
+class AddProductDialog(QDialog):
+    def __init__(self, parent=None, existing_names=None):
+        super().__init__(parent)
+        self.existing_names = existing_names if existing_names else []
+        self.setWindowTitle("Produkt hinzufügen")
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QGridLayout()
+
+        self.name_label = QLabel("Produktname:")
+        layout.addWidget(self.name_label, 0, 0)
+        self.name_edit = QLineEdit()
+        layout.addWidget(self.name_edit, 0, 1)
+
+        self.price_label = QLabel("Preis:")
+        layout.addWidget(self.price_label, 1, 0)
+        self.price_edit = QDoubleSpinBox()
+        self.price_edit.setRange(0.00, 999.99)
+        self.price_edit.setSingleStep(0.50)
+        layout.addWidget(self.price_edit, 1, 1)
+
+        self.cancel_button = QPushButton("Abbrechen")
+        self.cancel_button.clicked.connect(self.reject)
+        layout.addWidget(self.cancel_button, 2, 0)
+
+        self.add_button = QPushButton("Hinzufügen")
+        self.add_button.clicked.connect(self.add_product)
+        layout.addWidget(self.add_button, 2, 1)
+
+        self.setLayout(layout)
+
+    def add_product(self):
+        name = self.name_edit.text().strip()
+        price = self.price_edit.value()
+
+        if not name:
+            QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
+            return
+
+        if name in self.existing_names:
+            QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
+            return
+
+        self.accept()
+
+    def get_product(self):
+        name = self.name_edit.text().strip()
+        price = self.price_edit.value()
+        return Product(name, price)
+
+class EditProductDialog(AddProductDialog):
+    def __init__(self, parent=None, existing_names=None, current_product=None):
+        super().__init__(parent, existing_names)
+        self.setWindowTitle("Produkt bearbeiten")
+        self.current_product = current_product
+        if current_product:
+            self.name_edit.setText(current_product.name)
+            self.price_edit.setValue(current_product.price)
+        self.add_button.setText("Speichern")
+        self.add_button.clicked.disconnect(self.add_product)
+        self.add_button.clicked.connect(self.edit_product)
+
+    def edit_product(self):
+        name = self.name_edit.text().strip()
+        price = self.price_edit.value()
+
+        if not name:
+            QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
+            return
+
+        if name != self.current_product.name and name in self.existing_names:
+            QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
+            return
+
+        self.accept()
 
 class VendingMachineGUI(QWidget):
     def __init__(self):
