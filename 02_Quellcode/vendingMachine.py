@@ -19,8 +19,7 @@ class Database:
         self.conn.execute(
             """
             CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
+                name TEXT PRIMARY KEY,
                 price REAL NOT NULL,
                 stock INTEGER
             );
@@ -30,7 +29,6 @@ class Database:
             """
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY,
-                product_id INTEGER NOT NULL,
                 product_name TEXT NOT NULL,
                 price REAL NOT NULL,
                 datetime TEXT NOT NULL
@@ -125,13 +123,21 @@ class Database:
         except Error as e:
             print(e)
     
-    def set_pin(self, new_pin):
+    def add_transaction(self, transaction):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("UPDATE config SET value = ? WHERE key = 'pin'", (new_pin,))
+            cursor.execute("INSERT INTO transactions (product_name, price, datetime) VALUES (?, ?, ?)", (transaction.product.name, transaction.product.price, transaction.timestamp.strftime("%Y-%m-%d %H:%M:%S")))
             self.conn.commit()
         except Error as e:
             print(e)
+
+    def get_transactions(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT product_name, price, datetime FROM transactions")
+        rows = cursor.fetchall()
+
+        transactions = [Transaction(Product(row[0], row[1]), row[1], datetime.datetime.strptime(row[2], "%Y-%m-%d %H:%M:%S")) for row in rows]
+        return transactions
 
     def get_pin(self):
         cursor = self.conn.cursor()
@@ -141,10 +147,10 @@ class Database:
 
 
 class Transaction:
-    def __init__(self, product, amount_paid):
+    def __init__(self, product, amount_paid, timestamp=None):
         self.product = product
         self.amount_paid = amount_paid
-        self.timestamp = datetime.datetime.now()
+        self.timestamp = timestamp if timestamp else datetime.datetime.now()
 
     def __str__(self):
         formatted_timestamp = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Format ohne Nachkommastellen
@@ -152,11 +158,13 @@ class Transaction:
 
 
 class TransactionLog:
-    def __init__(self):
-        self.transactions = []
+    def __init__(self, database):
+        self.database = database
+        self.transactions = self.database.get_transactions()
 
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
+        self.database.add_transaction(transaction)
 
     def get_transactions(self):
         return self.transactions
@@ -166,6 +174,7 @@ class TransactionLog:
         for transaction in self.transactions:
             total_sales += transaction.product.price
         return total_sales
+
 
 class Product:
     def __init__(self, name, price):
@@ -228,11 +237,12 @@ class CoinSlot:
 
 
 class VendingMachine:
-    def __init__(self, product_list, coin_slot, transaction_log):  # Dependency Injection
+    def __init__(self, product_list, coin_slot, database):  # Dependency Injection
         self.product_list = product_list
         self.coin_slot = coin_slot
-        self.transaction_log = transaction_log
+        self.transaction_log = TransactionLog(database)
         self.selected_product = None
+
 
     def select_product(self, product):
         self.selected_product = product
@@ -288,11 +298,20 @@ class PinDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("PIN eingeben")
         self.setup_ui()
+        self.user_canceled = False
 
     def setup_ui(self):
         layout = QVBoxLayout()
         self.pin_input = QLineEdit()
         self.pin_input.setEchoMode(QLineEdit.Password)
+
+         # RegExpValidator erstellen, um nur Zahlen von 1-9 zuzulassen
+        regex = QRegExp("[1-9]+")
+        validator = QRegExpValidator(regex)
+        self.pin_input.setValidator(validator)
+        #PIN-Länge auf 6 Zeichen beschränken
+        self.pin_input.setMaxLength(6)
+
         layout.addWidget(self.pin_input)
 
         buttons_layout = QGridLayout()
@@ -305,6 +324,10 @@ class PinDialog(QDialog):
         ok_button.clicked.connect(self.accept)
         buttons_layout.addWidget(ok_button, 3, 1)
 
+        cancel_button = QPushButton("Abbrechen")  # Hinzufügen einer Schaltfläche "Abbrechen"
+        cancel_button.clicked.connect(self.reject)  # Verbinden der Schaltfläche "Abbrechen" mit dem Signal "rejected"
+        buttons_layout.addWidget(cancel_button, 3, 0)
+
         layout.addLayout(buttons_layout)
         self.setLayout(layout)
 
@@ -314,6 +337,11 @@ class PinDialog(QDialog):
 
     def get_pin(self):
         return self.pin_input.text()
+
+    def reject(self):
+        self.user_canceled = True  # Setzen Sie user_canceled auf True, wenn der Benutzer auf "Abbrechen" klickt
+        super().reject()
+
 
 class ConfigDialog(QDialog):
     def __init__(self, parent=None, transaction_log=None, product_list=None):
@@ -454,52 +482,15 @@ class ConfigDialog(QDialog):
         return products
     
     def change_pin(self):
-        new_pin_dialog = QDialog(self)
+        new_pin_dialog = PinDialog(self)
         new_pin_dialog.setWindowTitle("Neue PIN eingeben")
-
-        layout = QVBoxLayout()
-        new_pin_input = QLineEdit()
-        new_pin_input.setEchoMode(QLineEdit.Password)
-        new_pin_input.setMaxLength(4)
-
-        # RegExpValidator erstellen, um nur Zahlen von 1-9 zuzulassen
-        regex = QRegExp("[1-9]+")
-        validator = QRegExpValidator(regex)
-        new_pin_input.setValidator(validator)
-
-        layout.addWidget(new_pin_input)
-
-        # Tastenfeld hinzufügen
-        button_grid = QGridLayout()
-
-        def on_number_button_clicked():
-            button = new_pin_dialog.sender()
-            new_pin_input.insert(button.text())
-
-        for i in range(1, 10):
-            button = QPushButton(str(i))
-            button.clicked.connect(on_number_button_clicked)
-            row = (i - 1) // 3
-            col = (i - 1) % 3
-            button_grid.addWidget(button, row, col)
-
-        layout.addLayout(button_grid)
-
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(new_pin_dialog.accept)
-        layout.addWidget(ok_button)
-
-        new_pin_dialog.setLayout(layout)
-
+        
         result = new_pin_dialog.exec_()
-
+        
         if result == QDialog.Accepted:
-            new_pin = new_pin_input.text()
-            self.product_list.database.set_pin(new_pin)
+            new_pin = new_pin_dialog.get_pin()
+            self.product_list.database.update_config("pin", new_pin)
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
-
-
-
 
 
 class AddProductDialog(QDialog):
@@ -585,8 +576,7 @@ class VendingMachineGUI(QWidget):
         self.database = Database(db_path)  # Erstelle ein Database-Objekt
         product_list = ProductList(self.database)  # Übergebe das Database-Objekt an die ProductList-Klasse
         coin_slot = CoinSlot()
-        transaction_log = TransactionLog()
-        self.vending_machine = VendingMachine(product_list, coin_slot, transaction_log)  # Dependency Injection
+        self.vending_machine = VendingMachine(product_list, coin_slot, self.database)  # Dependency Injection
         self.setup_ui()
 
     def setup_ui(self):
@@ -652,8 +642,6 @@ class VendingMachineGUI(QWidget):
                 new_products = dialog.get_products()
                 self.vending_machine.product_list.save_products(new_products)
                 self.refresh_product_buttons()
-        else:
-            QMessageBox.warning(self, "Fehler", "Falscher PIN. Zugang verweigert.")
 
 
     def refresh_product_buttons(self):
@@ -680,60 +668,29 @@ class VendingMachineGUI(QWidget):
         self.layout().addWidget(self.status_label, row + 1, 1, 1, 2)
 
     def show_pin_dialog(self):
-        pin_dialog = QDialog(self)
-        pin_dialog.setWindowTitle("PIN-Eingabe")
+        class CustomPinDialog(PinDialog):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.user_canceled = False
 
-        layout = QVBoxLayout()
-        pin_dialog.setLayout(layout)
+            def reject(self):
+                self.user_canceled = True
+                super().reject()
 
-        pin_label = QLabel("Bitte geben Sie den PIN ein:")
-        layout.addWidget(pin_label)
+        pin_dialog = CustomPinDialog(self)
+        result = pin_dialog.exec_()
 
-        pin_entry = QLineEdit()
-        pin_entry.setMaxLength(4)
-        pin_entry.setEchoMode(QLineEdit.Password)
-
-        # RegExpValidator erstellen, um nur Zahlen von 1-9 zuzulassen
-        regex = QRegExp("[1-9]+")
-        validator = QRegExpValidator(regex)
-        pin_entry.setValidator(validator)
-
-        layout.addWidget(pin_entry)
-
-        def pin_entry_changed():
-            pin_entry.setStyleSheet('')
-
-        pin_entry.textChanged.connect(pin_entry_changed)
-
-        keypad_layout = QGridLayout()
-        layout.addLayout(keypad_layout)
-
-        def on_keypad_button_clicked(button_text):
-            current_text = pin_entry.text()
-            pin_entry.setText(current_text + button_text)
-
-        for i in range(1, 10):
-            button = QPushButton(str(i))
-            button.clicked.connect(lambda _, t=str(i): on_keypad_button_clicked(t))
-            keypad_layout.addWidget(button, (i - 1) // 3, (i - 1) % 3)
-
-        def on_ok_button_clicked():
-            entered_pin = pin_entry.text()
+        if result == QDialog.Accepted:
+            entered_pin = pin_dialog.get_pin()
             correct_pin = str(self.database.get_config("pin"))
+
             if entered_pin == correct_pin:
-                pin_dialog.accept()
+                return True
             else:
-                QMessageBox.warning(pin_dialog, "Fehler", "Falscher Pin")
-                pin_entry.setStyleSheet("background-color: red;")
-                pin_entry.setText("")
-
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(on_ok_button_clicked)
-        layout.addWidget(ok_button)
-
-        return pin_dialog.exec_() == QDialog.Accepted
-
-
+                QMessageBox.warning(self, "Falscher Pin", "Zugriff verweigert")
+                return False
+        else:
+             return False 
 
 
 if __name__ == "__main__":
