@@ -5,33 +5,67 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QDoubleSpinBox
 import sqlite3
 from sqlite3 import Error
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtCore import QRegExp
 
 db_path = "03_SQL//database//vendingMachine.db"
 
 class Database:
-    def __init__(self, db_file):
-        self.conn = self.create_connection(db_file)
-        self.cur = self.conn.cursor()
-        self.create_products_table()
+    def __init__(self, db_name="vending_machine.db"):
+        self.conn = sqlite3.connect(db_name)
+        self.create_tables()
 
-    def create_connection(self, db_file):
-        conn = None
-        try:
-            conn = sqlite3.connect(db_file)
-        except Error as e:
-            print(e)
+    def create_tables(self):
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                stock INTEGER
+            );
+            """
+        )
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY,
+                product_id INTEGER NOT NULL,
+                product_name TEXT NOT NULL,
+                price REAL NOT NULL,
+                datetime TEXT NOT NULL
+            );
+            """
+        )
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS config (
+                id INTEGER PRIMARY KEY,
+                key TEXT NOT NULL UNIQUE,
+                value TEXT NOT NULL
+            );
+            """
+        )
+        self.set_default_config()
 
-        return conn
+    def set_default_config(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT value FROM config WHERE key=?", ("pin",))
+        pin = cursor.fetchone()
 
-    def create_products_table(self):
-        try:
-            cursor = self.conn.cursor()
-            cursor.execute("""CREATE TABLE IF NOT EXISTS products (
-                                name TEXT PRIMARY KEY,
-                                price REAL NOT NULL
-                              );""")
-        except Error as e:
-            print(e)
+        if pin is None:
+            cursor.execute("INSERT INTO config (key, value) VALUES (?, ?)", ("pin", "1111"))
+            self.conn.commit()
+
+    def get_config(self, key):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT value FROM config WHERE key=?", (key,))
+        value = cursor.fetchone()
+        return value[0] if value else None
+
+    def update_config(self, key, value):
+        self.conn.execute("UPDATE config SET value=? WHERE key=?", (value, key))
+        self.conn.commit()
 
     def add_product(self, product):
         try:
@@ -66,18 +100,22 @@ class Database:
             print(e)
 
     def save_products(self, products):
-        with self.conn:
+        try:
+            cursor = self.conn.cursor()
             for product in products:
                 # Prüfen, ob ein Produkt mit demselben Namen bereits in der Datenbank vorhanden ist
-                self.cur.execute("SELECT COUNT(*) FROM products WHERE name=?", (product.name,))
-                count = self.cur.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM products WHERE name=?", (product.name,))
+                count = cursor.fetchone()[0]
 
                 if count == 0:
                     # Fügen Sie das Produkt hinzu, wenn es noch nicht in der Datenbank vorhanden ist
-                    self.cur.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
+                    cursor.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
                 else:
                     # Aktualisieren Sie den Eintrag, wenn das Produkt bereits in der Datenbank vorhanden ist
-                    self.cur.execute("UPDATE products SET price=? WHERE name=?", (product.price, product.name))
+                    cursor.execute("UPDATE products SET price=? WHERE name=?", (product.price, product.name))
+            self.conn.commit()
+        except Error as e:
+            print(e)
 
     def clear_products(self):
         try:
@@ -86,6 +124,20 @@ class Database:
             self.conn.commit()
         except Error as e:
             print(e)
+    
+    def set_pin(self, new_pin):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("UPDATE config SET value = ? WHERE key = 'pin'", (new_pin,))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def get_pin(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT value FROM config WHERE key = 'pin'")
+        row = cursor.fetchone()
+        return row[0] if row else None
 
 
 class Transaction:
@@ -231,6 +283,38 @@ class CoinsDialog(QDialog):
     def select_coin(self, coin):
         self.selected_coin = coin
 
+class PinDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("PIN eingeben")
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        self.pin_input = QLineEdit()
+        self.pin_input.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.pin_input)
+
+        buttons_layout = QGridLayout()
+        for i in range(1, 10):
+            button = QPushButton(str(i))
+            button.clicked.connect(lambda _, num=i: self.add_number(num))
+            buttons_layout.addWidget(button, (i - 1) // 3, (i - 1) % 3)
+
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        buttons_layout.addWidget(ok_button, 3, 1)
+
+        layout.addLayout(buttons_layout)
+        self.setLayout(layout)
+
+    def add_number(self, number):
+        current_text = self.pin_input.text()
+        self.pin_input.setText(current_text + str(number))
+
+    def get_pin(self):
+        return self.pin_input.text()
+
 class ConfigDialog(QDialog):
     def __init__(self, parent=None, transaction_log=None, product_list=None):
         super().__init__(parent)
@@ -280,6 +364,11 @@ class ConfigDialog(QDialog):
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
         product_layout.addWidget(self.ok_button)
+
+        self.change_pin_button = QPushButton("PIN ändern")
+        self.change_pin_button.clicked.connect(self.change_pin)
+        product_layout.addWidget(self.change_pin_button)
+
 
         layout.addLayout(product_layout)
 
@@ -363,6 +452,54 @@ class ConfigDialog(QDialog):
             if name_item is not None and price_item is not None:
                 products.append(Product(name_item.text(), float(price_item.text())))
         return products
+    
+    def change_pin(self):
+        new_pin_dialog = QDialog(self)
+        new_pin_dialog.setWindowTitle("Neue PIN eingeben")
+
+        layout = QVBoxLayout()
+        new_pin_input = QLineEdit()
+        new_pin_input.setEchoMode(QLineEdit.Password)
+        new_pin_input.setMaxLength(4)
+
+        # RegExpValidator erstellen, um nur Zahlen von 1-9 zuzulassen
+        regex = QRegExp("[1-9]+")
+        validator = QRegExpValidator(regex)
+        new_pin_input.setValidator(validator)
+
+        layout.addWidget(new_pin_input)
+
+        # Tastenfeld hinzufügen
+        button_grid = QGridLayout()
+
+        def on_number_button_clicked():
+            button = new_pin_dialog.sender()
+            new_pin_input.insert(button.text())
+
+        for i in range(1, 10):
+            button = QPushButton(str(i))
+            button.clicked.connect(on_number_button_clicked)
+            row = (i - 1) // 3
+            col = (i - 1) % 3
+            button_grid.addWidget(button, row, col)
+
+        layout.addLayout(button_grid)
+
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(new_pin_dialog.accept)
+        layout.addWidget(ok_button)
+
+        new_pin_dialog.setLayout(layout)
+
+        result = new_pin_dialog.exec_()
+
+        if result == QDialog.Accepted:
+            new_pin = new_pin_input.text()
+            self.product_list.database.set_pin(new_pin)
+            QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
+
+
+
 
 
 class AddProductDialog(QDialog):
@@ -445,8 +582,8 @@ class EditProductDialog(AddProductDialog):
 class VendingMachineGUI(QWidget):
     def __init__(self):
         super().__init__()
-        database = Database(db_path)  # Erstelle ein Database-Objekt
-        product_list = ProductList(database)  # Übergebe das Database-Objekt an die ProductList-Klasse
+        self.database = Database(db_path)  # Erstelle ein Database-Objekt
+        product_list = ProductList(self.database)  # Übergebe das Database-Objekt an die ProductList-Klasse
         coin_slot = CoinSlot()
         transaction_log = TransactionLog()
         self.vending_machine = VendingMachine(product_list, coin_slot, transaction_log)  # Dependency Injection
@@ -509,11 +646,14 @@ class VendingMachineGUI(QWidget):
             button.clicked.connect(lambda _, p=product: self.select_product(p))
 
     def show_config_dialog(self):
-        dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
-        if dialog.exec_() == QDialog.Accepted:
-            new_products = dialog.get_products()
-            self.vending_machine.product_list.save_products(new_products)
-            self.refresh_product_buttons()
+        if self.show_pin_dialog():
+            dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
+            if dialog.exec_() == QDialog.Accepted:
+                new_products = dialog.get_products()
+                self.vending_machine.product_list.save_products(new_products)
+                self.refresh_product_buttons()
+        else:
+            QMessageBox.warning(self, "Fehler", "Falscher PIN. Zugang verweigert.")
 
 
     def refresh_product_buttons(self):
@@ -538,6 +678,60 @@ class VendingMachineGUI(QWidget):
         self.layout().addWidget(self.buy_button, row, 2)
         self.layout().addWidget(self.coin_label, row + 1, 0)
         self.layout().addWidget(self.status_label, row + 1, 1, 1, 2)
+
+    def show_pin_dialog(self):
+        pin_dialog = QDialog(self)
+        pin_dialog.setWindowTitle("PIN-Eingabe")
+
+        layout = QVBoxLayout()
+        pin_dialog.setLayout(layout)
+
+        pin_label = QLabel("Bitte geben Sie den PIN ein:")
+        layout.addWidget(pin_label)
+
+        pin_entry = QLineEdit()
+        pin_entry.setMaxLength(4)
+        pin_entry.setEchoMode(QLineEdit.Password)
+
+        # RegExpValidator erstellen, um nur Zahlen von 1-9 zuzulassen
+        regex = QRegExp("[1-9]+")
+        validator = QRegExpValidator(regex)
+        pin_entry.setValidator(validator)
+
+        layout.addWidget(pin_entry)
+
+        def pin_entry_changed():
+            pin_entry.setStyleSheet('')
+
+        pin_entry.textChanged.connect(pin_entry_changed)
+
+        keypad_layout = QGridLayout()
+        layout.addLayout(keypad_layout)
+
+        def on_keypad_button_clicked(button_text):
+            current_text = pin_entry.text()
+            pin_entry.setText(current_text + button_text)
+
+        for i in range(1, 10):
+            button = QPushButton(str(i))
+            button.clicked.connect(lambda _, t=str(i): on_keypad_button_clicked(t))
+            keypad_layout.addWidget(button, (i - 1) // 3, (i - 1) % 3)
+
+        def on_ok_button_clicked():
+            entered_pin = pin_entry.text()
+            correct_pin = str(self.database.get_config("pin"))
+            if entered_pin == correct_pin:
+                pin_dialog.accept()
+            else:
+                QMessageBox.warning(pin_dialog, "Fehler", "Falscher Pin")
+                pin_entry.setStyleSheet("background-color: red;")
+                pin_entry.setText("")
+
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(on_ok_button_clicked)
+        layout.addWidget(ok_button)
+
+        return pin_dialog.exec_() == QDialog.Accepted
 
 
 
