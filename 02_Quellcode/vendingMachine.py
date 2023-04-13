@@ -1,11 +1,11 @@
 import sys
 import PyQt5
 import datetime
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox
+from PyQt5.QtCore import Qt,QSize
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog
 import sqlite3
 from sqlite3 import Error
-from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
 from PyQt5.QtCore import QRegExp
 
 db_path = "03_SQL//database//vendingMachine.db"
@@ -21,7 +21,8 @@ class Database:
             CREATE TABLE IF NOT EXISTS products (
                 name TEXT PRIMARY KEY,
                 price REAL NOT NULL,
-                stock INTEGER NOT NULL
+                stock INTEGER NOT NULL,
+                image_path TEXT
             );
             """
         )
@@ -66,7 +67,6 @@ class Database:
         self.conn.execute("UPDATE config SET value=? WHERE key=?", (value, key))
         self.conn.commit()
 
-    
     def delete_product(self, product_name):
         try:
             cursor = self.conn.cursor()
@@ -78,23 +78,23 @@ class Database:
     def add_product(self, product):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)", (product.name, product.price, product.stock))
+            cursor.execute("INSERT INTO products (name, price, stock, image_path) VALUES (?, ?, ?, ?)", (product.name, product.price, product.stock, product.image_path))
             self.conn.commit()
         except Error as e:
             print(e)
 
     def get_products(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT name, price, stock FROM products")
+        cursor.execute("SELECT name, price, stock, image_path FROM products")
         rows = cursor.fetchall()
 
-        products = [Product(row[0], row[1], row[2]) for row in rows]
+        products = [Product(row[0], row[1], row[2], row[3]) for row in rows]
         return products
 
     def update_product(self, old_product, new_product):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("UPDATE products SET name = ?, price = ?, stock = ? WHERE name = ?", (new_product.name, new_product.price, new_product.stock, old_product.name))
+            cursor.execute("UPDATE products SET name = ?, price = ?, stock = ?, image_path = ? WHERE name = ?", (new_product.name, new_product.price, new_product.stock, new_product.image_path, old_product.name))
             self.conn.commit()
         except Error as e:
             print(e)
@@ -109,13 +109,13 @@ class Database:
 
                 if count == 0:
                     # Fügen Sie das Produkt hinzu, wenn es noch nicht in der Datenbank vorhanden ist
-                    cursor.execute("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)", (product.name, product.price, product.stock))
+                    cursor.execute("INSERT INTO products (name, price, stock, image_path) VALUES (?, ?, ?, ?)",            (product.name, product.price, product.stock, product.image_path))
                 else:
                     # Aktualisieren Sie den Eintrag, wenn das Produkt bereits in der Datenbank vorhanden ist
-                    cursor.execute("UPDATE products SET price=?, stock=? WHERE name=?", (product.price, product.stock, product.name))
+                    cursor.execute("UPDATE products SET price=?, stock=?, image_path=? WHERE name=?", (product.price, product.stock, product.image_path, product.name))
             self.conn.commit()
         except Error as e:
-            print(e)
+         print(e)
 
     def clear_products(self):
         try:
@@ -124,7 +124,7 @@ class Database:
             self.conn.commit()
         except Error as e:
             print(e)
-    
+
     def add_transaction(self, transaction, remaining_stock):
         try:
             cursor = self.conn.cursor()
@@ -143,6 +143,20 @@ class Database:
     def get_pin(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT value FROM config WHERE key = 'pin'")
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+    def update_product_image_path(self, product_name, image_path):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("UPDATE products SET image_path = ? WHERE name = ?", (image_path, product_name))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def get_product_image_path(self, product_name):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT image_path FROM products WHERE name = ?", (product_name,))
         row = cursor.fetchone()
         return row[0] if row else None
 
@@ -179,10 +193,11 @@ class TransactionLog:
 
 
 class Product:
-    def __init__(self, name, price, stock):
+    def __init__(self, name, price, stock, image_path):
         self.name = name
         self.price = price
         self.stock = stock
+        self.image_path = image_path
 
     def __str__(self):
         return f"{self.name} ({self.price} €)"
@@ -196,7 +211,6 @@ class ProductList:
         self.database.clear_products()  # Löschen Sie vorhandene Produkte in der Datenbank
         self.database.save_products(products)
         self.products = products
-
 
 class Coin:
     available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
@@ -365,31 +379,34 @@ class ConfigDialog(QDialog):
 
     def setup_ui(self):
         layout = QHBoxLayout()
-    
+
         # Produkte
         product_layout = QVBoxLayout()
         product_label = QLabel("Produkte")
         product_layout.addWidget(product_label)
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(3)
+        self.product_table.setColumnCount(4)
         self.product_table.setColumnWidth(0, 400)
         self.product_table.setColumnWidth(1, 200)
         self.product_table.setColumnWidth(2, 200)
+        self.product_table.setColumnWidth(3, 400)
         self.product_table.setRowCount(len(self.product_list.products))
-        self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis", "Bestand"])
+        self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis", "Bestand", "Bildpfad"])
         self.product_table.verticalHeader().setVisible(False)
 
         for i, product in enumerate(self.product_list.products):
             name_item = QTableWidgetItem(product.name)
             price_item = QTableWidgetItem(str(product.price))
             stock_item = QTableWidgetItem(str(product.stock))
+            image_path_item = QTableWidgetItem(product.image_path)
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
             price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
             stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
+            image_path_item.setFlags(image_path_item.flags() & ~Qt.ItemIsEditable)  # Bildpfad sollte nicht bearbeitbar sein
             self.product_table.setItem(i, 0, name_item)
             self.product_table.setItem(i, 1, price_item)
-            self.product_table.setItem(i, 2, stock_item)  
-
+            self.product_table.setItem(i, 2, stock_item)
+            self.product_table.setItem(i, 3, image_path_item)  # Bildpfad-Element setzen
 
         self.product_table.resizeColumnsToContents()
         product_layout.addWidget(self.product_table)
@@ -410,7 +427,7 @@ class ConfigDialog(QDialog):
 
         product_layout.addLayout(button_row1_layout)
 
-        #Schaltfläsche für weitere Buttons
+        # Schaltfläche für weitere Buttons
         button_row2_layout = QHBoxLayout()
         self.change_pin_button = QPushButton("PIN ändern")
         self.change_pin_button.clicked.connect(self.change_pin)
@@ -442,6 +459,7 @@ class ConfigDialog(QDialog):
         layout.addLayout(transaction_layout)
         self.setLayout(layout)
 
+
     def is_name_unique(self, name, exclude_row=None):
         for row in range(self.product_table.rowCount()):
             if row != exclude_row and self.product_table.item(row, 0).text() == name:
@@ -461,35 +479,41 @@ class ConfigDialog(QDialog):
                 name_item = QTableWidgetItem(new_product.name)
                 price_item = QTableWidgetItem(str(new_product.price))
                 stock_item = QTableWidgetItem(str(new_product.stock))
+                image_item = QTableWidgetItem(new_product.image_path)
                 name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
                 price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
                 stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
+                image_item.setFlags(image_item.flags() & ~Qt.ItemIsEditable)
                 self.product_table.setItem(row, 0, name_item)
                 self.product_table.setItem(row, 1, price_item)
                 self.product_table.setItem(row, 2, stock_item)
+                self.product_table.setItem(row, 3, image_item)
             else:
                 QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
 
     def edit_product(self):
         row = self.product_table.currentRow()
         if row != -1:
-            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text())))
+            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()),self.product_table.item(row, 3).text()))
             result = edit_product_dialog.exec_()
 
             if result == QDialog.Accepted:
                 edited_product = edit_product_dialog.get_product()
                 if self.is_name_unique(edited_product.name, exclude_row=row):
-                    current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()))
+                    current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()),self.product_table.item(row, 3).text())
                     self.product_list.database.update_product(current_product, edited_product)
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
                     stock_item = QTableWidgetItem(str(edited_product.stock))
+                    image_item = QTableWidgetItem(edited_product.image_path)
                     name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
                     price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
                     stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
+                    image_item.setFlags(image_item.flags() & ~Qt.ItemIsEditable)
                     self.product_table.setItem(row, 0, name_item)
                     self.product_table.setItem(row, 1, price_item)
                     self.product_table.setItem(row, 2, stock_item)
+                    self.product_table.setItem(row, 3, image_item)
                 else:
                     QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
 
@@ -509,8 +533,9 @@ class ConfigDialog(QDialog):
             name_item = self.product_table.item(i, 0)
             price_item = self.product_table.item(i, 1)
             stock_item = self.product_table.item(i, 2)
+            image_item = self.product_table.item(i, 3)
             if name_item is not None and price_item is not None and stock_item is not None:
-                products.append(Product(name_item.text(), float(price_item.text()), int(stock_item.text())))
+                products.append(Product(name_item.text(), float(price_item.text()), int(stock_item.text()),image_item.text()))
         return products
     
     def change_pin(self):
@@ -553,20 +578,38 @@ class AddProductDialog(QDialog):
         self.stock_edit.setRange(0, 999)
         layout.addWidget(self.stock_edit, 2, 1)
 
+        self.image_label = QLabel("Bild:")
+        layout.addWidget(self.image_label, 3, 0)
+        self.image_path_edit = QLineEdit()
+        self.image_path_edit.setReadOnly(True)
+        layout.addWidget(self.image_path_edit, 3, 1)
+        self.choose_image_button = QPushButton("Bild auswählen")
+        self.choose_image_button.clicked.connect(self.choose_image)
+        layout.addWidget(self.choose_image_button, 3, 2)
+
         self.cancel_button = QPushButton("Abbrechen")
         self.cancel_button.clicked.connect(self.reject)
-        layout.addWidget(self.cancel_button, 3, 0)
+        layout.addWidget(self.cancel_button, 4, 0)
 
         self.add_button = QPushButton("Hinzufügen")
         self.add_button.clicked.connect(self.add_product)
-        layout.addWidget(self.add_button, 3, 1)
+        layout.addWidget(self.add_button, 4, 1)
 
         self.setLayout(layout)
+
+    def choose_image(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "",
+                                                   "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
+        if file_name:
+            self.image_edit.setText(file_name)
 
     def add_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
+        image_path = self.image_edit.text().strip()
 
         if not name:
             QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
@@ -576,13 +619,18 @@ class AddProductDialog(QDialog):
             QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
             return
 
+        if not image_path:
+            QMessageBox.warning(self, "Fehler", "Bitte wählen Sie ein Bild aus.")
+            return
+
         self.accept()
 
     def get_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
-        return Product(name, price, stock)
+        image_path = self.image_edit.text().strip()
+        return Product(name, price, stock, image_path)
 
 class EditProductDialog(AddProductDialog):
     def __init__(self, parent=None, existing_names=None, current_product=None):
@@ -597,10 +645,22 @@ class EditProductDialog(AddProductDialog):
         self.add_button.clicked.disconnect(self.add_product)
         self.add_button.clicked.connect(self.edit_product)
 
+        layout = self.layout()
+        self.image_label = QLabel("Bild:")
+        layout.addWidget(self.image_label, 3, 0)
+        self.image_edit = QLineEdit()
+        self.image_edit.setReadOnly(True)
+        layout.addWidget(self.image_edit, 3, 1)
+        self.choose_image_button = QPushButton("Bild auswählen")
+        self.choose_image_button.clicked.connect(self.choose_image)
+        layout.addWidget(self.choose_image_button, 3, 2)
+        
+
     def edit_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
+        image_path = self.image_path_edit.text().strip()
 
         if not name:
             QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
@@ -610,7 +670,26 @@ class EditProductDialog(AddProductDialog):
             QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
             return
 
+        self.current_product.name = name
+        self.current_product.price = price
+        self.current_product.stock = stock
+        self.current_product.image_path = image_path
+        print(self.current_product.image_path)
         self.accept()
+
+    def browse_image(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_path, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "", "Image Files (*.png *.jpg *.bmp *.gif *.jpeg)", options=options)
+        if file_path:
+            self.image_path_edit.setText(file_path)
+    
+    def get_product(self):
+        name = self.name_edit.text().strip()
+        price = self.price_edit.value()
+        stock = self.stock_edit.value()
+        image_path = self.image_edit.text().strip()
+        return Product(name, price, stock, image_path)
 
 
 class VendingMachineGUI(QWidget):
@@ -628,7 +707,9 @@ class VendingMachineGUI(QWidget):
         layout = QGridLayout()
 
         for i, product in enumerate(self.vending_machine.get_products()):
-            button = QPushButton(str(product))
+            button = QPushButton(str(product.name) + "\n" + str(product.price))
+            button.setIcon(QIcon(product.image_path))
+            button.setIconSize(QSize(100, 100))
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
             layout.addWidget(button, i // 3, i % 3)
@@ -660,21 +741,21 @@ class VendingMachineGUI(QWidget):
     def buy_product(self):
         message = self.vending_machine.buy_product()
         self.status_label.setText(message)
-        #CHECK---------------------------
         amount = f"{self.vending_machine.coin_slot.get_total_amount()} €"
         self.coin_label.setText(str(amount))
-        #--------------------------------
 
     def show_coin_dialog(self):
         dialog = CoinsDialog(self)
         if dialog.exec_() == QDialog.Accepted:
             self.vending_machine.coin_slot.add_coin(dialog.selected_coin)
             self.coin_label.setText(f"{self.vending_machine.coin_slot.get_total_amount()} €")
-    
+
     def update_product_buttons(self):
         for i, product in enumerate(self.vending_machine.get_products()):
             button = self.product_buttons[i]
-            button.setText(str(product))
+            button.setText(str(product.name) + "\n" + str(product.price))
+            button.setIcon(QIcon(product.image_path))
+            button.setIconSize(QSize(100, 100))
             button.clicked.disconnect()
             button.clicked.connect(lambda _, p=product: self.select_product(p))
 
@@ -694,10 +775,20 @@ class VendingMachineGUI(QWidget):
             button.setParent(None)
 
         self.product_buttons = []
-
+        test=self.vending_machine.get_products()
+        print(self.vending_machine.get_products())
         # Erstellen Sie neue Produkt-Buttons und fügen Sie sie zum Layout hinzu
         for i, product in enumerate(self.vending_machine.get_products()):
             button = QPushButton(str(product))
+            
+            if product.image_path is not None:
+                pixmap = QPixmap(product.image_path)
+            else:
+                pixmap = QPixmap("default_image.png")  # ersetzen Sie "default_image.jpg" durch den Pfad zu Ihrem Standardbild
+                
+            button.setIcon(QIcon(pixmap))
+            button.setIconSize(pixmap.scaledToWidth(100).size())
+            
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
             self.layout().addWidget(button, i // 3, i % 3)
