@@ -2,7 +2,7 @@ import sys
 import PyQt5
 import datetime
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QDoubleSpinBox
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox
 import sqlite3
 from sqlite3 import Error
 from PyQt5.QtGui import QRegExpValidator
@@ -21,7 +21,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS products (
                 name TEXT PRIMARY KEY,
                 price REAL NOT NULL,
-                stock INTEGER
+                stock INTEGER NOT NULL
             );
             """
         )
@@ -31,6 +31,7 @@ class Database:
                 id INTEGER PRIMARY KEY,
                 product_name TEXT NOT NULL,
                 price REAL NOT NULL,
+                remaining_stock INTEGER,
                 datetime TEXT NOT NULL
             );
             """
@@ -65,34 +66,35 @@ class Database:
         self.conn.execute("UPDATE config SET value=? WHERE key=?", (value, key))
         self.conn.commit()
 
+    
+    def delete_product(self, product_name):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM products WHERE name = ?", (product_name,))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
     def add_product(self, product):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
+            cursor.execute("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)", (product.name, product.price, product.stock))
             self.conn.commit()
         except Error as e:
             print(e)
 
     def get_products(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT name, price FROM products")
+        cursor.execute("SELECT name, price, stock FROM products")
         rows = cursor.fetchall()
 
-        products = [Product(row[0], row[1]) for row in rows]
+        products = [Product(row[0], row[1], row[2]) for row in rows]
         return products
 
     def update_product(self, old_product, new_product):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("UPDATE products SET name = ?, price = ? WHERE name = ?", (new_product.name, new_product.price, old_product.name))
-            self.conn.commit()
-        except Error as e:
-            print(e)
-
-    def delete_product(self, product):
-        try:
-            cursor = self.conn.cursor()
-            cursor.execute("DELETE FROM products WHERE name = ?", (product.name,))
+            cursor.execute("UPDATE products SET name = ?, price = ?, stock = ? WHERE name = ?", (new_product.name, new_product.price, new_product.stock, old_product.name))
             self.conn.commit()
         except Error as e:
             print(e)
@@ -107,10 +109,10 @@ class Database:
 
                 if count == 0:
                     # Fügen Sie das Produkt hinzu, wenn es noch nicht in der Datenbank vorhanden ist
-                    cursor.execute("INSERT INTO products (name, price) VALUES (?, ?)", (product.name, product.price))
+                    cursor.execute("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)", (product.name, product.price, product.stock))
                 else:
                     # Aktualisieren Sie den Eintrag, wenn das Produkt bereits in der Datenbank vorhanden ist
-                    cursor.execute("UPDATE products SET price=? WHERE name=?", (product.price, product.name))
+                    cursor.execute("UPDATE products SET price=?, stock=? WHERE name=?", (product.price, product.stock, product.name))
             self.conn.commit()
         except Error as e:
             print(e)
@@ -123,20 +125,19 @@ class Database:
         except Error as e:
             print(e)
     
-    def add_transaction(self, transaction):
+    def add_transaction(self, transaction, remaining_stock):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("INSERT INTO transactions (product_name, price, datetime) VALUES (?, ?, ?)", (transaction.product.name, transaction.product.price, transaction.timestamp.strftime("%Y-%m-%d %H:%M:%S")))
+            cursor.execute("INSERT INTO transactions (product_name, price, remaining_stock, datetime) VALUES (?, ?, ?, ?)", (transaction.product_name, transaction.amount_paid, remaining_stock, transaction.timestamp.strftime("%Y-%m-%d %H:%M:%S")))
             self.conn.commit()
         except Error as e:
             print(e)
 
     def get_transactions(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT product_name, price, datetime FROM transactions")
+        cursor.execute("SELECT product_name, price, remaining_stock, datetime FROM transactions")
         rows = cursor.fetchall()
-
-        transactions = [Transaction(Product(row[0], row[1]), row[1], datetime.datetime.strptime(row[2], "%Y-%m-%d %H:%M:%S")) for row in rows]
+        transactions = [Transaction(row[0], row[1], row[2], datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")) for row in rows]
         return transactions
 
     def get_pin(self):
@@ -147,14 +148,15 @@ class Database:
 
 
 class Transaction:
-    def __init__(self, product, amount_paid, timestamp=None):
-        self.product = product
+    def __init__(self, product_name, amount_paid, remaining_stock, timestamp=None):
+        self.product_name = product_name
         self.amount_paid = amount_paid
+        self.remaining_stock = remaining_stock
         self.timestamp = timestamp if timestamp else datetime.datetime.now()
 
     def __str__(self):
         formatted_timestamp = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Format ohne Nachkommastellen
-        return f"{formatted_timestamp} : {self.product.name} {self.amount_paid} €"
+        return f"{formatted_timestamp} : {self.product_name} {self.amount_paid} € - Verbleibender Bestand: {self.remaining_stock}"
 
 
 class TransactionLog:
@@ -164,7 +166,7 @@ class TransactionLog:
 
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
-        self.database.add_transaction(transaction)
+        self.database.add_transaction(transaction, transaction.remaining_stock)
 
     def get_transactions(self):
         return self.transactions
@@ -177,9 +179,10 @@ class TransactionLog:
 
 
 class Product:
-    def __init__(self, name, price):
+    def __init__(self, name, price, stock):
         self.name = name
         self.price = price
+        self.stock = stock
 
     def __str__(self):
         return f"{self.name} ({self.price} €)"
@@ -252,10 +255,19 @@ class VendingMachine:
             return "Bitte wählen Sie ein Produkt aus."
         if self.selected_product.price > self.coin_slot.get_total_amount():
             return "Sie haben nicht genug Geld eingeworfen."
+        if self.selected_product.stock <= 0:
+            return "Dieses Produkt ist leider nicht mehr vorrätig."
+
         self.coin_slot.sub_coin(self.selected_product.price)
         product_bought = self.selected_product.name
-        transaction = Transaction(self.selected_product, self.selected_product.price)
+        remaining_stock = self.selected_product.stock - 1
+        transaction = Transaction(self.selected_product.name, self.selected_product.price, self.selected_product.stock - 1)
         self.transaction_log.add_transaction(transaction)
+        
+        # Bestand aktualisieren
+        self.selected_product.stock -= 1
+        self.product_list.save_products(self.product_list.products)
+
         self.selected_product = None
         return f"Vielen Dank für Ihren Einkauf: {product_bought}"
 
@@ -359,20 +371,25 @@ class ConfigDialog(QDialog):
         product_label = QLabel("Produkte")
         product_layout.addWidget(product_label)
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(2)
+        self.product_table.setColumnCount(3)
         self.product_table.setColumnWidth(0, 400)
         self.product_table.setColumnWidth(1, 200)
+        self.product_table.setColumnWidth(2, 200)
         self.product_table.setRowCount(len(self.product_list.products))
-        self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis"])
+        self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis", "Bestand"])
         self.product_table.verticalHeader().setVisible(False)
 
         for i, product in enumerate(self.product_list.products):
             name_item = QTableWidgetItem(product.name)
             price_item = QTableWidgetItem(str(product.price))
+            stock_item = QTableWidgetItem(str(product.stock))
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
             price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
+            stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
             self.product_table.setItem(i, 0, name_item)
             self.product_table.setItem(i, 1, price_item)
+            self.product_table.setItem(i, 2, stock_item)  
+
 
         self.product_table.resizeColumnsToContents()
         product_layout.addWidget(self.product_table)
@@ -443,30 +460,36 @@ class ConfigDialog(QDialog):
                 self.product_table.setRowCount(row + 1)
                 name_item = QTableWidgetItem(new_product.name)
                 price_item = QTableWidgetItem(str(new_product.price))
+                stock_item = QTableWidgetItem(str(new_product.stock))
                 name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
                 price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
+                stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
                 self.product_table.setItem(row, 0, name_item)
                 self.product_table.setItem(row, 1, price_item)
+                self.product_table.setItem(row, 2, stock_item)
             else:
                 QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
 
     def edit_product(self):
         row = self.product_table.currentRow()
         if row != -1:
-            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text())))
+            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text())))
             result = edit_product_dialog.exec_()
 
             if result == QDialog.Accepted:
                 edited_product = edit_product_dialog.get_product()
                 if self.is_name_unique(edited_product.name, exclude_row=row):
-                    current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()))
+                    current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()))
                     self.product_list.database.update_product(current_product, edited_product)
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
+                    stock_item = QTableWidgetItem(str(edited_product.stock))
                     name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
                     price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
+                    stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
                     self.product_table.setItem(row, 0, name_item)
                     self.product_table.setItem(row, 1, price_item)
+                    self.product_table.setItem(row, 2, stock_item)
                 else:
                     QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
 
@@ -475,17 +498,19 @@ class ConfigDialog(QDialog):
     def delete_product(self):
         row = self.product_table.currentRow()
         if row != -1:
-            product_to_delete = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()))
-            self.product_list.database.delete_product(product_to_delete)  # Direkt aus der Datenbank löschen
+            product_name = self.product_table.item(row, 0).text()
+            self.product_list.database.delete_product(product_name)  # Direkt aus der Datenbank löschen
             self.product_table.removeRow(row)
+
 
     def get_products(self):
         products = []
         for i in range(self.product_table.rowCount()):
             name_item = self.product_table.item(i, 0)
             price_item = self.product_table.item(i, 1)
-            if name_item is not None and price_item is not None:
-                products.append(Product(name_item.text(), float(price_item.text())))
+            stock_item = self.product_table.item(i, 2)
+            if name_item is not None and price_item is not None and stock_item is not None:
+                products.append(Product(name_item.text(), float(price_item.text()), int(stock_item.text())))
         return products
     
     def change_pin(self):
@@ -522,19 +547,26 @@ class AddProductDialog(QDialog):
         self.price_edit.setSingleStep(0.50)
         layout.addWidget(self.price_edit, 1, 1)
 
+        self.stock_label = QLabel("Bestand:")
+        layout.addWidget(self.stock_label, 2, 0)
+        self.stock_edit = QSpinBox()
+        self.stock_edit.setRange(0, 999)
+        layout.addWidget(self.stock_edit, 2, 1)
+
         self.cancel_button = QPushButton("Abbrechen")
         self.cancel_button.clicked.connect(self.reject)
-        layout.addWidget(self.cancel_button, 2, 0)
+        layout.addWidget(self.cancel_button, 3, 0)
 
         self.add_button = QPushButton("Hinzufügen")
         self.add_button.clicked.connect(self.add_product)
-        layout.addWidget(self.add_button, 2, 1)
+        layout.addWidget(self.add_button, 3, 1)
 
         self.setLayout(layout)
 
     def add_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
+        stock = self.stock_edit.value()
 
         if not name:
             QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
@@ -549,7 +581,8 @@ class AddProductDialog(QDialog):
     def get_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
-        return Product(name, price)
+        stock = self.stock_edit.value()
+        return Product(name, price, stock)
 
 class EditProductDialog(AddProductDialog):
     def __init__(self, parent=None, existing_names=None, current_product=None):
@@ -559,6 +592,7 @@ class EditProductDialog(AddProductDialog):
         if current_product:
             self.name_edit.setText(current_product.name)
             self.price_edit.setValue(current_product.price)
+            self.stock_edit.setValue(current_product.stock)
         self.add_button.setText("Speichern")
         self.add_button.clicked.disconnect(self.add_product)
         self.add_button.clicked.connect(self.edit_product)
@@ -566,6 +600,7 @@ class EditProductDialog(AddProductDialog):
     def edit_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
+        stock = self.stock_edit.value()
 
         if not name:
             QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
@@ -576,6 +611,7 @@ class EditProductDialog(AddProductDialog):
             return
 
         self.accept()
+
 
 class VendingMachineGUI(QWidget):
     def __init__(self):
