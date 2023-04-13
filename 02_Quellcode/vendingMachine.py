@@ -11,8 +11,8 @@ from PyQt5.QtCore import QRegExp
 db_path = "03_SQL//database//vendingMachine.db"
 
 class Database:
-    def __init__(self, db_name="vending_machine.db"):
-        self.conn = sqlite3.connect(db_name)
+    def __init__(self, db_file):
+        self.conn = sqlite3.connect(db_file)
         self.create_tables()
 
     def create_tables(self):
@@ -353,13 +353,17 @@ class ConfigDialog(QDialog):
 
     def setup_ui(self):
         layout = QHBoxLayout()
-
+    
         # Produkte
         product_layout = QVBoxLayout()
+        product_label = QLabel("Produkte")
+        product_layout.addWidget(product_label)
         self.product_table = QTableWidget()
         self.product_table.setColumnCount(2)
+        self.product_table.setColumnWidth(0, 400)
+        self.product_table.setColumnWidth(1, 200)
         self.product_table.setRowCount(len(self.product_list.products))
-        self.product_table.setHorizontalHeaderLabels(["Produkt", "Preis"])
+        self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis"])
         self.product_table.verticalHeader().setVisible(False)
 
         for i, product in enumerate(self.product_list.products):
@@ -374,29 +378,32 @@ class ConfigDialog(QDialog):
         product_layout.addWidget(self.product_table)
 
         # Schaltflächen zum Hinzufügen, Bearbeiten und Löschen von Produkten
-        button_layout = QHBoxLayout()
+        button_row1_layout = QHBoxLayout()
         self.add_button = QPushButton("Produkt hinzufügen")
         self.add_button.clicked.connect(self.add_product)
-        button_layout.addWidget(self.add_button)
+        button_row1_layout.addWidget(self.add_button)
 
         self.edit_button = QPushButton("Produkt bearbeiten")
         self.edit_button.clicked.connect(self.edit_product)
-        button_layout.addWidget(self.edit_button)
+        button_row1_layout.addWidget(self.edit_button)
 
         self.delete_button = QPushButton("Produkt löschen")
         self.delete_button.clicked.connect(self.delete_product)
-        button_layout.addWidget(self.delete_button)
+        button_row1_layout.addWidget(self.delete_button)
 
-        product_layout.addLayout(button_layout)
+        product_layout.addLayout(button_row1_layout)
+
+        #Schaltfläsche für weitere Buttons
+        button_row2_layout = QHBoxLayout()
+        self.change_pin_button = QPushButton("PIN ändern")
+        self.change_pin_button.clicked.connect(self.change_pin)
+        button_row2_layout.addWidget(self.change_pin_button)
 
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
-        product_layout.addWidget(self.ok_button)
+        button_row2_layout.addWidget(self.ok_button)
 
-        self.change_pin_button = QPushButton("PIN ändern")
-        self.change_pin_button.clicked.connect(self.change_pin)
-        product_layout.addWidget(self.change_pin_button)
-
+        product_layout.addLayout(button_row2_layout)
 
         layout.addLayout(product_layout)
 
