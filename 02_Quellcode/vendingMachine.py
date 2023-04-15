@@ -2,7 +2,7 @@ import sys
 import PyQt5
 import datetime
 from PyQt5.QtCore import Qt,QSize
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog,QGroupBox
 import sqlite3
 from sqlite3 import Error
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -298,23 +298,36 @@ class CoinsDialog(QDialog):
 
     def setup_ui(self):
         self.coin_buttons = []
-        layout = QGridLayout()
+        layout = QVBoxLayout()
 
+        coins_layout = QHBoxLayout()  # Ändern Sie das Layout von QGridLayout zu QHBoxLayout
         for i, coin in enumerate(self.coins):
-            button = QPushButton(str(coin))
+            pixmap = QPixmap(f"02_Quellcode//images//coin_{coin.value}.jpg")  # Pfad zum Bild der jeweiligen Münze
+            pixmap = pixmap.scaled(50, 50, Qt.KeepAspectRatio)  # Skalieren Sie das Bild auf die gewünschte Größe
+            icon = QIcon(pixmap)
+            button = QPushButton()
+            button.setIcon(icon)
+            button.setIconSize(pixmap.rect().size())
+            button.setFixedSize(60, 60)  # Setzen Sie eine feste Größe für den Button
             button.clicked.connect(lambda _, c=coin: self.select_coin(c))
             self.coin_buttons.append(button)
-            layout.addWidget(button, i // 2, i % 2)
+            coins_layout.addWidget(button)
 
+        layout.addLayout(coins_layout)
+
+        buttons_layout = QHBoxLayout()
         self.cancel_button = QPushButton("Abbrechen")
         self.cancel_button.clicked.connect(self.reject)
-        layout.addWidget(self.cancel_button, len(self.coins) // 2, 0)
+        buttons_layout.addWidget(self.cancel_button)
 
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
-        layout.addWidget(self.ok_button, len(self.coins) // 2, 1)
+        buttons_layout.addWidget(self.ok_button)
+
+        layout.addLayout(buttons_layout)
 
         self.setLayout(layout)
+
 
     def select_coin(self, coin):
         self.selected_coin = coin
@@ -603,13 +616,13 @@ class AddProductDialog(QDialog):
         file_name, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "",
                                                    "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
         if file_name:
-            self.image_edit.setText(file_name)
+            self.image_path_edit.setText(file_name)
 
     def add_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
-        image_path = self.image_edit.text().strip()
+        image_path = self.image_path_edit.text().strip()
 
         if not name:
             QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
@@ -629,7 +642,7 @@ class AddProductDialog(QDialog):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
-        image_path = self.image_edit.text().strip()
+        image_path = self.image_path_edit.text().strip()
         return Product(name, price, stock, image_path)
 
 class EditProductDialog(AddProductDialog):
@@ -648,9 +661,9 @@ class EditProductDialog(AddProductDialog):
         layout = self.layout()
         self.image_label = QLabel("Bild:")
         layout.addWidget(self.image_label, 3, 0)
-        self.image_edit = QLineEdit()
-        self.image_edit.setReadOnly(True)
-        layout.addWidget(self.image_edit, 3, 1)
+        self.image_path_edit = QLineEdit()
+        self.image_path_edit.setReadOnly(True)
+        layout.addWidget(self.image_path_edit, 3, 1)
         self.choose_image_button = QPushButton("Bild auswählen")
         self.choose_image_button.clicked.connect(self.choose_image)
         layout.addWidget(self.choose_image_button, 3, 2)
@@ -688,7 +701,7 @@ class EditProductDialog(AddProductDialog):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
-        image_path = self.image_edit.text().strip()
+        image_path = self.image_path_edit.text().strip()
         return Product(name, price, stock, image_path)
 
 
@@ -706,33 +719,44 @@ class VendingMachineGUI(QWidget):
         self.product_buttons = []
         layout = QGridLayout()
 
+        # Platzieren Sie das status_label über der QGroupBox
+        self.status_label = QLabel("Bitte wählen Sie ein Produkt aus.")
+        layout.addWidget(self.status_label, 0, 0, 1, 3)
+
+        # Erstellen Sie die QGroupBox für die Produkt-Buttons
+        self.products_groupbox = QGroupBox("Produkte")
+        products_layout = QGridLayout()
+        self.products_groupbox.setLayout(products_layout)
+
         for i, product in enumerate(self.vending_machine.get_products()):
             button = QPushButton(str(product.name) + "\n" + str(product.price))
             button.setIcon(QIcon(product.image_path))
             button.setIconSize(QSize(100, 100))
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
-            layout.addWidget(button, i // 3, i % 3)
+            products_layout.addWidget(button, i // 3, i % 3)
 
+        layout.addWidget(self.products_groupbox, 1, 0, 1, 3)
+
+        # Restlichen Widgets hinzufügen (coin_button, config_button, buy_button, coin_label)
         self.coin_button = QPushButton("Münzen einwerfen")
         self.coin_button.clicked.connect(self.show_coin_dialog)
-        layout.addWidget(self.coin_button, len(self.product_buttons) // 3 + 1, 0)
+        layout.addWidget(self.coin_button, 2, 3)
 
         self.config_button = QPushButton("Konfigurationsmenü")
         self.config_button.clicked.connect(self.show_config_dialog)
-        layout.addWidget(self.config_button, len(self.product_buttons) // 3 + 1, 1)
+        layout.addWidget(self.config_button, 3, 3)
 
         self.buy_button = QPushButton("Kaufen")
         self.buy_button.clicked.connect(self.buy_product)
-        layout.addWidget(self.buy_button, len(self.product_buttons) // 3 + 1, 2)
+        layout.addWidget(self.buy_button, 4, 3)
 
         self.coin_label = QLabel("0.0 €")
-        layout.addWidget(self.coin_label, len(self.product_buttons) // 3 + 2, 0)
-
-        self.status_label = QLabel("Bitte wählen Sie ein Produkt aus.")
-        layout.addWidget(self.status_label, len(self.product_buttons) // 3 + 2, 1, 1, 2)
+        layout.addWidget(self.coin_label, 5, 0)
 
         self.setLayout(layout)
+
+
 
     def select_product(self, product):
         self.vending_machine.select_product(product)
@@ -775,31 +799,43 @@ class VendingMachineGUI(QWidget):
             button.setParent(None)
 
         self.product_buttons = []
-        test=self.vending_machine.get_products()
-        print(self.vending_machine.get_products())
-        # Erstellen Sie neue Produkt-Buttons und fügen Sie sie zum Layout hinzu
+
+        # Erhalten Sie das products_layout aus der QGroupBox im Hauptlayout
+        products_layout = self.products_groupbox.layout()  # Hier das products_layout abrufen
         for i, product in enumerate(self.vending_machine.get_products()):
             button = QPushButton(str(product))
-            
+
             if product.image_path is not None:
                 pixmap = QPixmap(product.image_path)
             else:
-                pixmap = QPixmap("default_image.png")  # ersetzen Sie "default_image.jpg" durch den Pfad zu Ihrem Standardbild
-                
+                pixmap = QPixmap("default_image.png")
+
             button.setIcon(QIcon(pixmap))
             button.setIconSize(pixmap.scaledToWidth(100).size())
-            
+
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
-            self.layout().addWidget(button, i // 3, i % 3)
+            products_layout.addWidget(button, i // 3, i % 3)
 
         # Verschieben Sie die restlichen Widgets (coin_button, config_button, buy_button, coin_label, status_label)
         row = len(self.product_buttons) // 3 + 1
-        self.layout().addWidget(self.coin_button, row, 0)
-        self.layout().addWidget(self.config_button, row, 1)
-        self.layout().addWidget(self.buy_button, row, 2)
+
+        # Erstellen Sie ein neues QVBoxLayout für die Buttons
+        buttons_layout = QVBoxLayout()
+
+        # Fügen Sie die Buttons dem QVBoxLayout hinzu
+        buttons_layout.addWidget(self.coin_button)
+        buttons_layout.addWidget(self.config_button)
+        buttons_layout.addWidget(self.buy_button)
+
+        # Fügen Sie das QVBoxLayout in der letzten Spalte der GUI hinzu
+        self.layout().addLayout(buttons_layout, 1, 3, row, 1)
+
+        # Fügen Sie das Coin-Label unterhalb des Produktrahmens hinzu
         self.layout().addWidget(self.coin_label, row + 1, 0)
-        self.layout().addWidget(self.status_label, row + 1, 1, 1, 2)
+
+        # Fügen Sie das Status-Label oberhalb des Produktrahmens hinzu
+        self.layout().addWidget(self.status_label, 0, 0, 1, 3)
 
     def show_pin_dialog(self):
         class CustomPinDialog(PinDialog):
