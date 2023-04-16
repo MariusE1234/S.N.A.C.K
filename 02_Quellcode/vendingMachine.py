@@ -2,7 +2,7 @@ import sys
 import PyQt5
 import datetime
 from PyQt5.QtCore import Qt,QSize
-from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog,QGroupBox
+from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog,QGroupBox, QSlider
 import sqlite3
 from sqlite3 import Error
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -292,6 +292,7 @@ class CoinsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
+        self.setWindowIcon(QIcon("02_Quellcode//images//money_icon.jpg"))
         self.coins = [Coin(value) for value in Coin.available_coins]
         self.selected_coin = None
         self.setup_ui()
@@ -336,6 +337,7 @@ class PinDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("PIN eingeben")
+        self.setWindowIcon(QIcon("02_Quellcode//images//lock_icon.png"))
         self.setup_ui()
         self.user_canceled = False
 
@@ -386,6 +388,7 @@ class ConfigDialog(QDialog):
     def __init__(self, parent=None, transaction_log=None, product_list=None):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
+        self.setWindowIcon(QIcon("02_Quellcode//images//config_icon.png"))
         self.product_list = product_list
         self.transaction_log = transaction_log
         self.setup_ui()
@@ -568,6 +571,7 @@ class AddProductDialog(QDialog):
         super().__init__(parent)
         self.existing_names = existing_names if existing_names else []
         self.setWindowTitle("Produkt hinzufügen")
+        self.setWindowIcon(QIcon("02_Quellcode//images//add_icon.png"))
         self.setup_ui()
 
     def setup_ui(self):
@@ -649,11 +653,14 @@ class EditProductDialog(AddProductDialog):
     def __init__(self, parent=None, existing_names=None, current_product=None):
         super().__init__(parent, existing_names)
         self.setWindowTitle("Produkt bearbeiten")
+        self.setWindowIcon(QIcon("02_Quellcode//images//edit_icon.png"))
         self.current_product = current_product
         if current_product:
             self.name_edit.setText(current_product.name)
             self.price_edit.setValue(current_product.price)
             self.stock_edit.setValue(current_product.stock)
+            # Setzen des Bildpfads des aktuellen Produkts im image_path_edit-Textfeld
+            self.image_path_edit.setText(current_product.image_path)
         self.add_button.setText("Speichern")
         self.add_button.clicked.disconnect(self.add_product)
         self.add_button.clicked.connect(self.edit_product)
@@ -661,8 +668,7 @@ class EditProductDialog(AddProductDialog):
         layout = self.layout()
         self.image_label = QLabel("Bild:")
         layout.addWidget(self.image_label, 3, 0)
-        self.image_path_edit = QLineEdit()
-        self.image_path_edit.setReadOnly(True)
+        self.image_path_edit.setReadOnly(False)
         layout.addWidget(self.image_path_edit, 3, 1)
         self.choose_image_button = QPushButton("Bild auswählen")
         self.choose_image_button.clicked.connect(self.choose_image)
@@ -704,6 +710,89 @@ class EditProductDialog(AddProductDialog):
         image_path = self.image_path_edit.text().strip()
         return Product(name, price, stock, image_path)
 
+class InfoDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Info - S.N.A.C.K")
+        self.setWindowIcon(QIcon("02_Quellcode//images//info_icon.png"))
+
+        layout = QVBoxLayout()
+
+        info_label = QLabel()
+        info_label.setText("<h2><u>S.N.A.C.K – das stilvolle neue attraktive coole Knabbersystem</u></h2>"
+                           "<p><b>Namen der Entwickler:</b></p>"
+                           "<ul>"
+                           "<li>Burak Özkan</li>"
+                           "<li>Marius Engelmeier</li>"
+                           "</ul>"
+                           "<p><b>Beschreibung:</b></p>"
+                           "<p>S.N.A.C.K ist ein virtueller Verkaufsautomat der verschiedensten Snacks und Getränke anbietet. "
+                           "Der Automat funktioniert wie ein normaler Verkaufsautomat, Münzen werden eingeworfen und der "
+                           "entsprechende Snack/Getränke wird ausgewählt. Zu dem ist es möglich den Automaten zu bearbeiten, "
+                           "die Preise oder das Sortiment können festgelegt werden.</p>"
+                           "<p><b>Ziel:</b></p>"
+                           "<p>Unerfahrene Automatenbenutzer können sich mit dem virtuellen S.N.A.C.K auf die Benutzung von "
+                           "Automaten in der Realwelt vorbereiten. Zu dem können Besitzer von Automaten lernen, wie dieser "
+                           "zu initialisieren ist.</p>"
+                           "<p><b>Repository:</b></p>"
+                           "<p><a href='https://github.com/MariusE1234/S.N.A.C.K.git'>https://github.com/MariusE1234/S.N.A.C.K.git</a></p>")
+        info_label.setWordWrap(True)
+        info_label.setTextFormat(Qt.RichText)
+        layout.addWidget(info_label)
+
+        satisfaction_label = QLabel("Zufriedenheit mit dem Snack-Automaten:")
+        layout.addWidget(satisfaction_label)
+
+        satisfaction_slider = QSlider(Qt.Horizontal)
+        layout.addWidget(satisfaction_slider)
+
+        send_satisfaction_button = QPushButton("Zufriedenheit senden")
+        send_satisfaction_button.clicked.connect(lambda: self.show_feedback(satisfaction_slider.value()))
+        layout.addWidget(send_satisfaction_button)
+
+        close_button = QPushButton("Schließen")
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button)
+
+        self.setLayout(layout)
+    
+    def show_feedback(self, satisfaction_value):
+        feedback_dialog = QDialog(self)
+        feedback_dialog.setWindowTitle("Zufriedenheit")
+
+        layout = QVBoxLayout()
+
+        emoji_label = QLabel()
+        if satisfaction_value < 50:
+            emoji_pixmap = QPixmap("02_Quellcode//images//sad.png")
+            message = "Es tut uns leid, dass dir unser Verkaufsautomat nicht gefallen hat."
+        elif 50 <= satisfaction_value < 75:
+            emoji_pixmap = QPixmap("02_Quellcode//images//neutral.png")
+            message = "Danke für dein Feedback. Wir werden daran arbeiten, unseren Verkaufsautomaten zu verbessern."
+        else:
+            emoji_pixmap = QPixmap("02_Quellcode//images//happy.png")
+            message = "Wir freuen uns, dass dir unser Verkaufsautomat gefällt. Danke für dein positives Feedback!"
+
+        # Skaliere das Bild auf die gewünschte Größe
+        scaled_pixmap = emoji_pixmap.scaled(100, 100, Qt.KeepAspectRatio)
+        emoji_label.setPixmap(scaled_pixmap)
+        layout.addWidget(emoji_label)
+        
+        # Zentriere das Bild im QLabel
+        emoji_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(emoji_label)
+
+        message_label = QLabel(message)
+        layout.addWidget(message_label)
+
+        close_button = QPushButton("Schließen")
+        close_button.clicked.connect(feedback_dialog.close)
+        layout.addWidget(close_button)
+
+        feedback_dialog.setLayout(layout)
+        feedback_dialog.exec()
+
 
 class VendingMachineGUI(QWidget):
     def __init__(self):
@@ -716,6 +805,7 @@ class VendingMachineGUI(QWidget):
 
     def setup_ui(self):
         self.setWindowTitle("S.N.A.C.K Verkaufsautomat")
+        self.setWindowIcon(QIcon("02_Quellcode//images//vm_icon.png"))
         self.product_buttons = []
         layout = QGridLayout()
 
@@ -753,6 +843,11 @@ class VendingMachineGUI(QWidget):
 
         self.coin_label = QLabel("0.0 €")
         layout.addWidget(self.coin_label, 5, 0)
+
+        # Fügen Sie den Info-Button hinzu
+        self.info_button = QPushButton("Info")
+        self.info_button.clicked.connect(self.show_info_dialog)
+        layout.addWidget(self.info_button, 6, 3)
 
         self.setLayout(layout)
 
@@ -813,6 +908,9 @@ class VendingMachineGUI(QWidget):
             button.setIcon(QIcon(pixmap))
             button.setIconSize(pixmap.scaledToWidth(100).size())
 
+            # Setzen Sie die Größe aller Buttons auf die gleiche Größe (z.B. 120x120)
+            button.setFixedSize(120, 120)
+
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
             products_layout.addWidget(button, i // 3, i % 3)
@@ -836,6 +934,7 @@ class VendingMachineGUI(QWidget):
 
         # Fügen Sie das Status-Label oberhalb des Produktrahmens hinzu
         self.layout().addWidget(self.status_label, 0, 0, 1, 3)
+
 
     def show_pin_dialog(self):
         class CustomPinDialog(PinDialog):
@@ -861,6 +960,10 @@ class VendingMachineGUI(QWidget):
                 return False
         else:
              return False 
+         
+    def show_info_dialog(self):
+        info_dialog = InfoDialog(self)
+        info_dialog.exec_()
 
 
 if __name__ == "__main__":
