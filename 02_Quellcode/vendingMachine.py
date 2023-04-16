@@ -898,43 +898,14 @@ class VendingMachineGUI(QWidget):
         # Erhalten Sie das products_layout aus der QGroupBox im Hauptlayout
         products_layout = self.products_groupbox.layout()  # Hier das products_layout abrufen
         for i, product in enumerate(self.vending_machine.get_products()):
-            button = QPushButton(str(product))
-
-            if product.image_path is not None:
-                pixmap = QPixmap(product.image_path)
-            else:
-                pixmap = QPixmap("default_image.png")
-
-            button.setIcon(QIcon(pixmap))
-            button.setIconSize(pixmap.scaledToWidth(100).size())
-
-            # Setzen Sie die Größe aller Buttons auf die gleiche Größe (z.B. 120x120)
-            button.setFixedSize(120, 120)
-
+            button = QPushButton(str(product.name) + "\n" + str(product.price))
+            button.setIcon(QIcon(product.image_path))
+            button.setIconSize(QSize(100, 100))
             button.clicked.connect(lambda _, p=product: self.select_product(p))
             self.product_buttons.append(button)
             products_layout.addWidget(button, i // 3, i % 3)
 
-        # Verschieben Sie die restlichen Widgets (coin_button, config_button, buy_button, coin_label, status_label)
-        row = len(self.product_buttons) // 3 + 1
-
-        # Erstellen Sie ein neues QVBoxLayout für die Buttons
-        buttons_layout = QVBoxLayout()
-
-        # Fügen Sie die Buttons dem QVBoxLayout hinzu
-        buttons_layout.addWidget(self.coin_button)
-        buttons_layout.addWidget(self.config_button)
-        buttons_layout.addWidget(self.buy_button)
-
-        # Fügen Sie das QVBoxLayout in der letzten Spalte der GUI hinzu
-        self.layout().addLayout(buttons_layout, 1, 3, row, 1)
-
-        # Fügen Sie das Coin-Label unterhalb des Produktrahmens hinzu
-        self.layout().addWidget(self.coin_label, row + 1, 0)
-
-        # Fügen Sie das Status-Label oberhalb des Produktrahmens hinzu
-        self.layout().addWidget(self.status_label, 0, 0, 1, 3)
-
+       
 
     def show_pin_dialog(self):
         class CustomPinDialog(PinDialog):
