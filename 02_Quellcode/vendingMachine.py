@@ -7,10 +7,94 @@ import sqlite3
 from sqlite3 import Error
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
 from PyQt5.QtCore import QRegExp
+from abc import ABC, abstractmethod
 
 db_path = "03_SQL//database//vendingMachine.db"
 
-class Database:
+class IDataAccess(ABC):
+    @abstractmethod
+    def create_tables(self):
+        pass
+
+    @abstractmethod
+    def set_default_config(self):
+        pass
+
+    @abstractmethod
+    def get_config(self, key):
+        pass
+
+    @abstractmethod
+    def update_config(self, key, value):
+        pass
+
+    @abstractmethod
+    def delete_product(self, product_name):
+        pass
+
+    @abstractmethod
+    def add_product(self, product):
+        pass
+
+    @abstractmethod
+    def get_products(self):
+        pass
+
+    @abstractmethod
+    def update_product(self, old_product, new_product):
+        pass
+
+    @abstractmethod
+    def save_products(self, products):
+        pass
+
+    @abstractmethod
+    def clear_products(self):
+        pass
+
+    @abstractmethod
+    def add_transaction(self, transaction, remaining_stock):
+        pass
+
+    @abstractmethod
+    def get_transactions(self):
+        pass
+
+    @abstractmethod
+    def get_pin(self):
+        pass
+
+    @abstractmethod
+    def update_product_image_path(self, product_name, image_path):
+        pass
+
+    @abstractmethod
+    def get_product_image_path(self, product_name):
+        pass
+
+class ITransactionLog(ABC):
+    @abstractmethod
+    def add_transaction(self, transaction):
+        pass
+
+    @abstractmethod
+    def get_transactions(self):
+        pass
+
+    @abstractmethod
+    def get_total_sales(self):
+        pass
+
+class IProductList(ABC):
+    @abstractmethod
+    def save_products(self, products):
+        pass
+
+    @abstractmethod
+    def get_products(self):
+        pass
+
+class Database(IDataAccess):
     def __init__(self, db_file):
         self.conn = sqlite3.connect(db_file)
         self.create_tables()
@@ -160,7 +244,6 @@ class Database:
         row = cursor.fetchone()
         return row[0] if row else None
 
-
 class Transaction:
     def __init__(self, product_name, amount_paid, remaining_stock, timestamp=None):
         self.product_name = product_name
@@ -172,15 +255,15 @@ class Transaction:
         formatted_timestamp = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Format ohne Nachkommastellen
         return f"{formatted_timestamp} : {self.product_name} {self.amount_paid} € - Verbleibender Bestand: {self.remaining_stock}"
 
+class TransactionLog(ITransactionLog):
+    def __init__(self, data_access: IDataAccess):
+        self.data_access = data_access
+        self.transactions = self.data_access.get_transactions()
 
-class TransactionLog:
-    def __init__(self, database):
-        self.database = database
-        self.transactions = self.database.get_transactions()
 
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
-        self.database.add_transaction(transaction, transaction.remaining_stock)
+        self.data_access.add_transaction(transaction, transaction.remaining_stock)
 
     def get_transactions(self):
         return self.transactions
@@ -190,7 +273,6 @@ class TransactionLog:
         for transaction in self.transactions:
             total_sales += transaction.product.price
         return total_sales
-
 
 class Product:
     def __init__(self, name, price, stock, image_path):
@@ -202,15 +284,18 @@ class Product:
     def __str__(self):
         return f"{self.name} ({self.price} €)"
 
-class ProductList:
-    def __init__(self, database):
-        self.database = database
-        self.products = self.database.get_products()
+class ProductList(IProductList):
+    def __init__(self, data_access: IDataAccess):
+        self.data_access = data_access
+        self.products = self.data_access.get_products()
 
     def save_products(self, products):
-        self.database.clear_products()  # Löschen Sie vorhandene Produkte in der Datenbank
-        self.database.save_products(products)
+        self.data_access.clear_products()  # Löschen Sie vorhandene Produkte in der Datenbank
+        self.data_access.save_products(products)
         self.products = products
+
+    def get_products(self):
+        return self.products
 
 class Coin:
     available_coins = [0.05, 0.1, 0.2, 0.5, 1, 2]
@@ -223,7 +308,6 @@ class Coin:
 
     def __str__(self):
         return f"{self.value} €"
-
 
 class CoinSlot:
     def __init__(self):
@@ -252,14 +336,18 @@ class CoinSlot:
     def reset(self):
         self.coins = []
 
-
 class VendingMachine:
-    def __init__(self, product_list, coin_slot, database):  # Dependency Injection
+    def __init__(
+        self,
+        product_list: IProductList,
+        coin_slot,
+        data_access: IDataAccess,
+    ):  # Dependency Injection
         self.product_list = product_list
         self.coin_slot = coin_slot
-        self.transaction_log = TransactionLog(database)
+        self.data_access = data_access
+        self.transaction_log = TransactionLog(data_access)
         self.selected_product = None
-
 
     def select_product(self, product):
         self.selected_product = product
@@ -275,9 +363,11 @@ class VendingMachine:
         self.coin_slot.sub_coin(self.selected_product.price)
         product_bought = self.selected_product.name
         remaining_stock = self.selected_product.stock - 1
-        transaction = Transaction(self.selected_product.name, self.selected_product.price, self.selected_product.stock - 1)
+        transaction = Transaction(
+            self.selected_product.name, self.selected_product.price, remaining_stock
+        )
         self.transaction_log.add_transaction(transaction)
-        
+
         # Bestand aktualisieren
         self.selected_product.stock -= 1
         self.product_list.save_products(self.product_list.products)
@@ -383,14 +473,20 @@ class PinDialog(QDialog):
         self.user_canceled = True  # Setzen Sie user_canceled auf True, wenn der Benutzer auf "Abbrechen" klickt
         super().reject()
 
-
 class ConfigDialog(QDialog):
-    def __init__(self, parent=None, transaction_log=None, product_list=None):
+    def __init__(
+        self,
+        parent=None,
+        transaction_log: ITransactionLog = None,
+        product_list: IProductList = None,
+        data_access: IDataAccess = None,  # Hinzufügen des IDataAccess-Interfaces
+    ):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
         self.setWindowIcon(QIcon("02_Quellcode//images//config_icon.png"))
         self.product_list = product_list
         self.transaction_log = transaction_log
+        self.data_access = data_access  # Speichern des data_access-Objekts
         self.setup_ui()
 
     def setup_ui(self):
@@ -489,7 +585,7 @@ class ConfigDialog(QDialog):
         if result == QDialog.Accepted:
             new_product = add_product_dialog.get_product()
             if self.is_name_unique(new_product.name):
-                self.product_list.database.add_product(new_product)
+                self.data_access.add_product(new_product)  # Verwenden von data_access statt database
                 row = self.product_table.rowCount()
                 self.product_table.setRowCount(row + 1)
                 name_item = QTableWidgetItem(new_product.name)
@@ -517,7 +613,7 @@ class ConfigDialog(QDialog):
                 edited_product = edit_product_dialog.get_product()
                 if self.is_name_unique(edited_product.name, exclude_row=row):
                     current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()),self.product_table.item(row, 3).text())
-                    self.product_list.database.update_product(current_product, edited_product)
+                    self.data_access.update_product(current_product, edited_product)
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
                     stock_item = QTableWidgetItem(str(edited_product.stock))
@@ -539,7 +635,7 @@ class ConfigDialog(QDialog):
         row = self.product_table.currentRow()
         if row != -1:
             product_name = self.product_table.item(row, 0).text()
-            self.product_list.database.delete_product(product_name)  # Direkt aus der Datenbank löschen
+            self.data_access.delete_product(product_name)  # Verwenden von data_access statt database
             self.product_table.removeRow(row)
 
 
@@ -562,9 +658,8 @@ class ConfigDialog(QDialog):
         
         if result == QDialog.Accepted:
             new_pin = new_pin_dialog.get_pin()
-            self.product_list.database.update_config("pin", new_pin)
+            self.data_access.update_config("pin", new_pin)  
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
-
 
 class AddProductDialog(QDialog):
     def __init__(self, parent=None, existing_names=None):
@@ -793,14 +888,16 @@ class InfoDialog(QDialog):
         feedback_dialog.setLayout(layout)
         feedback_dialog.exec()
 
-
 class VendingMachineGUI(QWidget):
-    def __init__(self):
+    def __init__(
+        self,
+        product_list: IProductList,
+        coin_slot,
+        data_access: IDataAccess,
+    ):
         super().__init__()
-        self.database = Database(db_path)  # Erstelle ein Database-Objekt
-        product_list = ProductList(self.database)  # Übergebe das Database-Objekt an die ProductList-Klasse
-        coin_slot = CoinSlot()
-        self.vending_machine = VendingMachine(product_list, coin_slot, self.database)  # Dependency Injection
+        self.data_access = data_access  # Speichern des data_access-Objekts
+        self.vending_machine = VendingMachine(product_list, coin_slot, data_access)  # Dependency Injection
         self.setup_ui()
 
     def setup_ui(self):
@@ -880,7 +977,7 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list)
+            dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list, data_access=self.vending_machine.data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products()
                 self.vending_machine.product_list.save_products(new_products)
@@ -922,7 +1019,7 @@ class VendingMachineGUI(QWidget):
 
         if result == QDialog.Accepted:
             entered_pin = pin_dialog.get_pin()
-            correct_pin = str(self.database.get_config("pin"))
+            correct_pin = str(self.data_access.get_config("pin"))  # Verwenden von data_access statt database
 
             if entered_pin == correct_pin:
                 return True
@@ -930,15 +1027,19 @@ class VendingMachineGUI(QWidget):
                 QMessageBox.warning(self, "Falscher Pin", "Zugriff verweigert")
                 return False
         else:
-             return False 
+             return False
          
     def show_info_dialog(self):
         info_dialog = InfoDialog(self)
         info_dialog.exec_()
 
-
 if __name__ == "__main__":
+    database = Database(db_path)
+    product_list = ProductList(database)
+    coin_slot = CoinSlot()
+
     app = QApplication(sys.argv)
-    gui = VendingMachineGUI()
+    gui = VendingMachineGUI(product_list, coin_slot, database)
     gui.show()
     sys.exit(app.exec_())
+
