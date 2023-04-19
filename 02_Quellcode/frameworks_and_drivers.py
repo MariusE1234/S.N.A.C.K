@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt,QSize, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog,QGroupBox, QSlider
 from use_cases import Transaction, Product, Coin, CoinSlot, VendingMachine, IProductList, ITransactionLog, ProductList
-from interface_adapters import IDataAccess, Database
+from use_cases import IDataAccess
 
 class CoinsDialog(QDialog):
     def __init__(self, parent=None):
@@ -518,12 +518,12 @@ class InfoDialog(QDialog):
 class VendingMachineGUI(QWidget):
     def __init__(
         self,
-        db_path: str,
+        data_access: IDataAccess,
     ):
         super().__init__()
-        self.data_access = Database(db_path)  # Erstellen und Speichern des data_access-Objekts
-        self.product_list = ProductList(self.data_access)  # Erstellen des product_list-Objekts
-        self.coin_slot = CoinSlot()  # Erstellen des coin_slot-Objekts
+        self.data_access = data_access
+        self.product_list = ProductList(self.data_access) 
+        self.coin_slot = CoinSlot()  
 
         self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.data_access)  # Dependency Injection
         self.setup_ui()

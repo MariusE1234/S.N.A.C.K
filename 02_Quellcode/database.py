@@ -1,75 +1,14 @@
-from abc import ABC, abstractmethod
 import sqlite3
 import datetime
 from sqlite3 import Error
 from entities import Transaction, Product, Coin
-#from use_cases import ITransactionLog, IProductList
+from use_cases import IDataAccess
 
-class IDataAccess(ABC):
-    @abstractmethod
-    def create_tables(self):
-        pass
-
-    @abstractmethod
-    def set_default_config(self):
-        pass
-
-    @abstractmethod
-    def get_config(self, key):
-        pass
-
-    @abstractmethod
-    def update_config(self, key, value):
-        pass
-
-    @abstractmethod
-    def delete_product(self, product_name):
-        pass
-
-    @abstractmethod
-    def add_product(self, product):
-        pass
-
-    @abstractmethod
-    def get_products(self):
-        pass
-
-    @abstractmethod
-    def update_product(self, old_product, new_product):
-        pass
-
-    @abstractmethod
-    def save_products(self, products):
-        pass
-
-    @abstractmethod
-    def clear_products(self):
-        pass
-
-    @abstractmethod
-    def add_transaction(self, transaction, remaining_stock):
-        pass
-
-    @abstractmethod
-    def get_transactions(self):
-        pass
-
-    @abstractmethod
-    def get_pin(self):
-        pass
-
-    @abstractmethod
-    def update_product_image_path(self, product_name, image_path):
-        pass
-
-    @abstractmethod
-    def get_product_image_path(self, product_name):
-        pass
-
+db_path = "03_SQL//database//vendingMachine.db"
 
 class Database(IDataAccess):
-    def __init__(self, db_file):
-        self.conn = sqlite3.connect(db_file)
+    def __init__(self):
+        self.conn = sqlite3.connect(db_path)
         self.create_tables()
 
     def create_tables(self):
