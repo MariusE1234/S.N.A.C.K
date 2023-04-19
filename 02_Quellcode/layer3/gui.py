@@ -36,10 +36,7 @@ class VendingMachineGUI(QWidget):
         self.products_groupbox.setLayout(products_layout)
 
         for i, product in enumerate(self.vending_machine.get_products()):
-            button = QPushButton(str(product.name) + "\n" + str(product.price))
-            button.setIcon(QIcon(product.image_path))
-            button.setIconSize(QSize(100, 100))
-            button.clicked.connect(lambda _, p=product: self.select_product(p))
+            button = self.create_product_button(product)
             self.product_buttons.append(button)
             products_layout.addWidget(button, i // 3, i % 3)
 
@@ -68,7 +65,12 @@ class VendingMachineGUI(QWidget):
 
         self.setLayout(layout)
 
-
+    def create_product_button(self, product):
+        button = QPushButton(str(product.name) + "\n" + str(product.price))
+        button.setIcon(QIcon(product.image_path))
+        button.setIconSize(QSize(100, 100))
+        button.clicked.connect(lambda _, p=product: self.select_product(p))
+        return button
 
     def select_product(self, product):
         self.vending_machine.select_product(product)
@@ -103,7 +105,6 @@ class VendingMachineGUI(QWidget):
                 self.vending_machine.product_list.save_products(new_products)
                 self.refresh_product_buttons()
 
-
     def refresh_product_buttons(self):
         # Löschen Sie alle Produkt-Buttons und entfernen Sie sie aus dem Layout
         for button in self.product_buttons:
@@ -115,26 +116,12 @@ class VendingMachineGUI(QWidget):
         # Erhalten Sie das products_layout aus der QGroupBox im Hauptlayout
         products_layout = self.products_groupbox.layout()  # Hier das products_layout abrufen
         for i, product in enumerate(self.vending_machine.get_products()):
-            button = QPushButton(str(product.name) + "\n" + str(product.price))
-            button.setIcon(QIcon(product.image_path))
-            button.setIconSize(QSize(100, 100))
-            button.clicked.connect(lambda _, p=product: self.select_product(p))
+            button = self.create_product_button(product)
             self.product_buttons.append(button)
             products_layout.addWidget(button, i // 3, i % 3)
 
-       
-
     def show_pin_dialog(self):
-        class CustomPinDialog(PinDialog):
-            def __init__(self, parent=None):
-                super().__init__(parent)
-                self.user_canceled = False
-
-            def reject(self):
-                self.user_canceled = True
-                super().reject()
-
-        pin_dialog = CustomPinDialog(self)
+        pin_dialog = PinDialog(self)
         result = pin_dialog.exec_()
 
         if result == QDialog.Accepted:
