@@ -1,7 +1,6 @@
 #File-imports
 from layer1.entities import Transaction
 from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
-from layer2.core_functions import TransactionLog
 
 class VendingMachine:
     def __init__(
