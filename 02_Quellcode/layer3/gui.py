@@ -1,6 +1,7 @@
 #File-imports
 from layer2.interfaces import IDataAccess
-from layer2.core_functions import CoinSlot, VendingMachine, ProductList
+from layer2.core_functions import CoinSlot, ProductList, TransactionLog
+from layer2.vending_machine import VendingMachine
 from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
 #libraries-imports
 from PyQt5.QtCore import QSize
@@ -16,8 +17,8 @@ class VendingMachineGUI(QWidget):
         self.data_access = data_access
         self.product_list = ProductList(self.data_access) 
         self.coin_slot = CoinSlot()  
-
-        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.data_access)  # Dependency Injection
+        self.transaction_log = TransactionLog(self.data_access)
+        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.data_access, self.transaction_log)  # Dependency Injection
         self.setup_ui()
 
     def setup_ui(self):
