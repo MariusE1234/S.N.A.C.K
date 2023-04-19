@@ -406,7 +406,6 @@ class EditProductDialog(AddProductDialog):
         self.current_product.price = price
         self.current_product.stock = stock
         self.current_product.image_path = image_path
-        print(self.current_product.image_path)
         self.accept()
 
     def browse_image(self):
