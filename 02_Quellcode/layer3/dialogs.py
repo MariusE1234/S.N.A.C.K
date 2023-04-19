@@ -347,16 +347,14 @@ class AddProductDialog(QDialog):
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        if not name:
-            QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
+        valid_name, name_error_msg = ProductValidator.is_valid_name(name, self.existing_names)
+        if not valid_name:
+            QMessageBox.warning(self, "Fehler", name_error_msg)
             return
 
-        if name in self.existing_names:
-            QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
-            return
-
-        if not image_path:
-            QMessageBox.warning(self, "Fehler", "Bitte wählen Sie ein Bild aus.")
+        valid_image_path, image_path_error_msg = ProductValidator.is_valid_image_path(image_path)
+        if not valid_image_path:
+            QMessageBox.warning(self, "Fehler", image_path_error_msg)
             return
 
         self.accept()
@@ -393,19 +391,15 @@ class EditProductDialog(AddProductDialog):
         self.choose_image_button.clicked.connect(self.choose_image)
         layout.addWidget(self.choose_image_button, 3, 2)
         
-
     def edit_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        if not name:
-            QMessageBox.warning(self, "Fehler", "Bitte geben Sie einen Produktnamen ein.")
-            return
-
-        if name != self.current_product.name and name in self.existing_names:
-            QMessageBox.warning(self, "Fehler", "Ein Produkt mit diesem Namen existiert bereits.")
+        valid_name, name_error_msg = ProductValidator.is_valid_name(name, self.existing_names, self.current_product)
+        if not valid_name:
+            QMessageBox.warning(self, "Fehler", name_error_msg)
             return
 
         self.current_product.name = name
@@ -511,3 +505,24 @@ class InfoDialog(QDialog):
 
         feedback_dialog.setLayout(layout)
         feedback_dialog.exec()
+
+class ProductValidator:
+    @staticmethod
+    def is_valid_name(name, existing_names, current_product=None):
+        if not name:
+            return False, "Bitte geben Sie einen Produktnamen ein."
+        
+        if current_product:
+            if name != current_product.name and name in existing_names:
+                return False, "Ein Produkt mit diesem Namen existiert bereits."
+        else:
+            if name in existing_names:
+                return False, "Ein Produkt mit diesem Namen existiert bereits."
+
+        return True, ""
+
+    @staticmethod
+    def is_valid_image_path(image_path):
+        if not image_path:
+            return False, "Bitte wählen Sie ein Bild aus."
+        return True, ""
