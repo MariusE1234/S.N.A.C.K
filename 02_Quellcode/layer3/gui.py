@@ -126,7 +126,7 @@ class VendingMachineGUI(QWidget):
 
         if result == QDialog.Accepted:
             entered_pin = pin_dialog.get_pin()
-            correct_pin = str(self.data_access.get_config("pin"))  # Verwenden von data_access statt database
+            correct_pin = str(self.data_access.get_config("pin"))
 
             if entered_pin == correct_pin:
                 return True
@@ -134,7 +134,7 @@ class VendingMachineGUI(QWidget):
                 QMessageBox.warning(self, "Falscher Pin", "Zugriff verweigert")
                 return False
         else:
-             return False
+            return False
          
     def show_info_dialog(self):
         info_dialog = InfoDialog(self)

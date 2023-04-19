@@ -97,10 +97,6 @@ class PinDialog(QDialog):
     def get_pin(self):
         return self.pin_input.text()
 
-    def reject(self):
-        self.user_canceled = True  # Setzen Sie user_canceled auf True, wenn der Benutzer auf "Abbrechen" klickt
-        super().reject()
-
 class ConfigDialog(QDialog):
     def __init__(
         self,
