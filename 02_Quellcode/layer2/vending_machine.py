@@ -37,6 +37,7 @@ class VendingMachine:
 
         # Bestand aktualisieren
         self.selected_product.stock -= 1
+        self.product_list.delete_products()
         self.product_list.save_products(self.product_list.products)
 
         self.selected_product = None

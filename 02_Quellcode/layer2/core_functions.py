@@ -15,19 +15,15 @@ class TransactionLog(ITransactionLog):
     def get_transactions(self):
         return self.transactions
 
-    def get_total_sales(self):
-        total_sales = 0
-        for transaction in self.transactions:
-            total_sales += transaction.product.price
-        return total_sales
-
 class ProductList(IProductList):
     def __init__(self, data_access: IDataAccess):
         self.data_access = data_access
         self.products = self.data_access.get_products()
+    
+    def delete_products(self):
+        self.data_access.clear_products()
 
     def save_products(self, products):
-        self.data_access.clear_products()  # Löschen Sie vorhandene Produkte in der Datenbank
         self.data_access.save_products(products)
         self.products = products
 
@@ -60,3 +56,18 @@ class CoinSlot:
 
     def reset(self):
         self.coins = []
+
+class SalesCalculator:
+    @staticmethod
+    def get_total_sales(transactions):
+        total_sales = 0
+        for transaction in transactions:
+            total_sales += transaction.amount_paid
+        return total_sales
+    
+    @staticmethod
+    def get_sold_products(transactions):
+        sold_products = 0
+        for transaction in transactions:
+            sold_products += 1
+        return sold_products

@@ -67,13 +67,13 @@ class ITransactionLog(ABC):
     def get_transactions(self):
         pass
 
-    @abstractmethod
-    def get_total_sales(self):
-        pass
-
 class IProductList(ABC):
     @abstractmethod
     def save_products(self, products):
+        pass
+
+    @abstractmethod
+    def delete_products(self):
         pass
 
     @abstractmethod

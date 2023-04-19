@@ -2,6 +2,7 @@
 from layer1.entities import Product, Coin
 from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
 from layer2.validator import ProductValidator
+from layer2.core_functions import SalesCalculator
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -170,6 +171,10 @@ class ConfigDialog(QDialog):
         self.change_pin_button.clicked.connect(self.change_pin)
         button_row2_layout.addWidget(self.change_pin_button)
 
+        self.stat_button = QPushButton("Statistik")
+        self.stat_button.clicked.connect(self.show_stat_dialog)
+        button_row2_layout.addWidget(self.stat_button)
+
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
         button_row2_layout.addWidget(self.ok_button)
@@ -285,6 +290,13 @@ class ConfigDialog(QDialog):
             new_pin = new_pin_dialog.get_pin()
             self.data_access.update_config("pin", new_pin)  
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
+
+    def show_stat_dialog(self):
+        salesCalc = SalesCalculator()
+        total_sales = salesCalc.get_total_sales(self.transaction_log.get_transactions())
+        sold_products = salesCalc.get_sold_products(self.transaction_log.get_transactions())
+        stat_dialog = StatDialog(self, total_sales, sold_products)
+        stat_dialog.exec_()
 
 class AddProductDialog(QDialog):
     def __init__(self, parent=None, existing_names=None):
@@ -505,3 +517,21 @@ class InfoDialog(QDialog):
 
         feedback_dialog.setLayout(layout)
         feedback_dialog.exec()
+
+class StatDialog(QDialog):
+    def __init__(self, parent, total_sales, sold_products):
+        super().__init__(parent)
+        self.setWindowTitle("Statistik")
+        layout = QGridLayout()
+
+        sales_label = QLabel(f"Gesamteinnahmen: {total_sales} €")
+        layout.addWidget(sales_label)
+
+        product_label = QLabel(f"verkaufte Produkte: {sold_products} €")
+        layout.addWidget(product_label)
+
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        layout.addWidget(ok_button)
+
+        self.setLayout(layout)

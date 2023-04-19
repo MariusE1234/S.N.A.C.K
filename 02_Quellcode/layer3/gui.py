@@ -2,7 +2,7 @@
 from layer2.interfaces import IDataAccess
 from layer2.core_functions import CoinSlot, ProductList, TransactionLog
 from layer2.vending_machine import VendingMachine
-from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
+from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog, StatDialog
 #libraries-imports
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
@@ -103,6 +103,7 @@ class VendingMachineGUI(QWidget):
             dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list, data_access=self.vending_machine.data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products()
+                self.vending_machine.product_list.delete_products()
                 self.vending_machine.product_list.save_products(new_products)
                 self.refresh_product_buttons()
 
