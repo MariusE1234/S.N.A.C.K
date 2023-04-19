@@ -1,5 +1,5 @@
 #File-imports
-from layer1.entities import Coin
+from layer1.entities import Coin, Transaction
 from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
 
 class TransactionLog(ITransactionLog):
@@ -56,6 +56,35 @@ class CoinSlot:
 
     def reset(self):
         self.coins = []
+
+class ProductManager:
+    def __init__(self, product_list: IProductList):
+        self.product_list = product_list
+        self.selected_product = None
+
+    def select_product(self, product):
+        self.selected_product = product
+
+    def get_products(self):
+        return self.product_list.products
+
+    def update_stock(self):
+        self.selected_product.stock -= 1
+        self.product_list.delete_products()
+        self.product_list.save_products(self.product_list.products)
+
+
+class TransactionManager:
+    def __init__(self, coin_slot, transaction_log: ITransactionLog):
+        self.coin_slot = coin_slot
+        self.transaction_log = transaction_log
+
+    def buy_product(self, product):
+        self.coin_slot.sub_coin(product.price)
+        remaining_stock = product.stock - 1
+        transaction = Transaction(product.name, product.price, remaining_stock)
+        self.transaction_log.add_transaction(transaction)
+
 
 class SalesCalculator:
     @staticmethod

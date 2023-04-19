@@ -75,19 +75,21 @@ class VendingMachineGUI(QWidget):
 
     def select_product(self, product):
         self.vending_machine.select_product(product)
-        self.status_label.setText(f"Bitte werfen Sie {self.vending_machine.selected_product.price} € ein.")
+        self.status_label.setText(f"Bitte werfen Sie {product.price} € ein.")
+
 
     def buy_product(self):
         message = self.vending_machine.buy_product()
         self.status_label.setText(message)
-        amount = f"{self.vending_machine.coin_slot.get_total_amount()} €"
+        amount = f"{self.coin_slot.get_total_amount()} €"
         self.coin_label.setText(str(amount))
 
     def show_coin_dialog(self):
         dialog = CoinsDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            self.vending_machine.coin_slot.add_coin(dialog.selected_coin)
-            self.coin_label.setText(f"{self.vending_machine.coin_slot.get_total_amount()} €")
+            self.coin_slot.add_coin(dialog.selected_coin)
+            self.coin_label.setText(f"{self.coin_slot.get_total_amount()} €")
+
 
     def update_product_buttons(self):
         for i, product in enumerate(self.vending_machine.get_products()):
@@ -100,11 +102,11 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = ConfigDialog(self, transaction_log=self.vending_machine.transaction_log, product_list=self.vending_machine.product_list, data_access=self.vending_machine.data_access)
+            dialog = ConfigDialog(self, transaction_log=self.transaction_log, product_list=self.product_list, data_access=self.data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products()
-                self.vending_machine.product_list.delete_products()
-                self.vending_machine.product_list.save_products(new_products)
+                self.product_list.delete_products()
+                self.product_list.save_products(new_products)
                 self.refresh_product_buttons()
 
     def refresh_product_buttons(self):
