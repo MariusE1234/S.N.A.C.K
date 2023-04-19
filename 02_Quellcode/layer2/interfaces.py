@@ -1,23 +1,24 @@
 #libraries-imports
 from abc import ABC, abstractmethod
 
-class IDataAccess(ABC):
+class IDatabase(ABC):
     @abstractmethod
     def create_tables(self):
         pass
 
     @abstractmethod
-    def set_default_config(self):
+    def get_ProductDataAccess(self):
+        pass
+    
+    @abstractmethod
+    def get_TransactionDataAccess(self):
         pass
 
     @abstractmethod
-    def get_config(self, key):
+    def get_ConfigDataAccess(self):
         pass
 
-    @abstractmethod
-    def update_config(self, key, value):
-        pass
-
+class IProductDataAccess(ABC):
     @abstractmethod
     def delete_product(self, product_name):
         pass
@@ -43,6 +44,15 @@ class IDataAccess(ABC):
         pass
 
     @abstractmethod
+    def update_product_image_path(self, product_name, image_path):
+        pass
+
+    @abstractmethod
+    def get_product_image_path(self, product_name):
+        pass
+
+class ITransactionDataAccess(ABC):
+    @abstractmethod
     def add_transaction(self, transaction, remaining_stock):
         pass
 
@@ -50,12 +60,17 @@ class IDataAccess(ABC):
     def get_transactions(self):
         pass
 
+class IConfigDataAccess(ABC):
     @abstractmethod
-    def update_product_image_path(self, product_name, image_path):
+    def set_default_config(self):
         pass
 
     @abstractmethod
-    def get_product_image_path(self, product_name):
+    def get_config(self, key):
+        pass
+
+    @abstractmethod
+    def update_config(self, key, value):
         pass
 
 class ITransactionLog(ABC):

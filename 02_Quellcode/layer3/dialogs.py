@@ -1,6 +1,6 @@
 #File-imports
 from layer1.entities import Product, Coin
-from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
+from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList, ITransactionLog
 from layer2.validator import ProductValidator
 from layer2.core_functions import SalesCalculator
 #libraries-imports
@@ -105,14 +105,16 @@ class ConfigDialog(QDialog):
         parent=None,
         transaction_log: ITransactionLog = None,
         product_list: IProductList = None,
-        data_access: IDataAccess = None,  # Hinzufügen des IDataAccess-Interfaces
+        product_data_access: IProductDataAccess = None,
+        config_data_access: IConfigDataAccess = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
         self.setWindowIcon(QIcon("04_Images//config_icon.png"))
         self.product_list = product_list
         self.transaction_log = transaction_log
-        self.data_access = data_access  # Speichern des data_access-Objekts
+        self.product_data_access = product_data_access
+        self.config_data_access = config_data_access
         self.setup_ui()
 
     def setup_ui(self):
@@ -215,7 +217,7 @@ class ConfigDialog(QDialog):
         if result == QDialog.Accepted:
             new_product = add_product_dialog.get_product()
             if self.is_name_unique(new_product.name):
-                self.data_access.add_product(new_product)  # Verwenden von data_access statt database
+                self.product_data_access.add_product(new_product)
                 row = self.product_table.rowCount()
                 self.product_table.setRowCount(row + 1)
                 name_item = QTableWidgetItem(new_product.name)
@@ -243,7 +245,7 @@ class ConfigDialog(QDialog):
                 edited_product = edit_product_dialog.get_product()
                 if self.is_name_unique(edited_product.name, exclude_row=row):
                     current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()),self.product_table.item(row, 3).text())
-                    self.data_access.update_product(current_product, edited_product)
+                    self.product_data_access.update_product(current_product, edited_product)
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
                     stock_item = QTableWidgetItem(str(edited_product.stock))
@@ -265,7 +267,7 @@ class ConfigDialog(QDialog):
         row = self.product_table.currentRow()
         if row != -1:
             product_name = self.product_table.item(row, 0).text()
-            self.data_access.delete_product(product_name)  # Verwenden von data_access statt database
+            self.product_data_access.delete_product(product_name)
             self.product_table.removeRow(row)
 
 
@@ -288,7 +290,7 @@ class ConfigDialog(QDialog):
         
         if result == QDialog.Accepted:
             new_pin = new_pin_dialog.get_pin()
-            self.data_access.update_config("pin", new_pin)  
+            self.config_data_access.update_config("pin", new_pin)  
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
 
     def show_stat_dialog(self):

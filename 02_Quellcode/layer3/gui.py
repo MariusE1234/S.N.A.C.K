@@ -1,5 +1,5 @@
 #File-imports
-from layer2.interfaces import IDataAccess
+from layer2.interfaces import IDatabase
 from layer2.core_functions import CoinSlot, ProductList, TransactionLog
 from layer2.vending_machine import VendingMachine
 from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog, StatDialog
@@ -9,16 +9,15 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QDialog, QPushButton, QGridLayout, QWidget, QMessageBox, QGroupBox
 
 class VendingMachineGUI(QWidget):
-    def __init__(
-        self,
-        data_access: IDataAccess,
-    ):
+    def __init__(self, db: IDatabase):
         super().__init__()
-        self.data_access = data_access
-        self.product_list = ProductList(self.data_access) 
-        self.coin_slot = CoinSlot()  
-        self.transaction_log = TransactionLog(self.data_access)
-        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.data_access, self.transaction_log)  # Dependency Injection
+        self.product_data_access = db.get_ProductDataAccess()
+        self.transaction_data_access = db.get_TransactionDataAccess()
+        self.config_data_access = db.get_ConfigDataAccess()
+        self.product_list = ProductList(self.product_data_access)
+        self.coin_slot = CoinSlot()
+        self.transaction_log = TransactionLog(self.transaction_data_access)
+        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)  # Dependency Injection
         self.setup_ui()
 
     def setup_ui(self):
@@ -102,7 +101,7 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = ConfigDialog(self, transaction_log=self.transaction_log, product_list=self.product_list, data_access=self.data_access)
+            dialog = ConfigDialog(self, self.transaction_log, self.product_list, self.product_data_access, self.config_data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products()
                 self.product_list.delete_products()
@@ -130,7 +129,7 @@ class VendingMachineGUI(QWidget):
 
         if result == QDialog.Accepted:
             entered_pin = pin_dialog.get_pin()
-            correct_pin = str(self.data_access.get_config("pin"))  # Verwenden von data_access statt database
+            correct_pin = str(self.config_data_access.get_config("pin"))
 
             if entered_pin == correct_pin:
                 return True

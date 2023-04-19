@@ -1,18 +1,21 @@
 #File-imports
 from layer1.entities import Transaction, Product
-from layer2.interfaces import IDataAccess
+from layer2.interfaces import IProductDataAccess, ITransactionDataAccess, IConfigDataAccess
 #libraries-imports
 import datetime
 import sqlite3
 from sqlite3 import Error
 
-
 db_path = "03_SQL//database//vendingMachine.db"
 
-class Database(IDataAccess):
+class Database:
     def __init__(self):
         self.conn = sqlite3.connect(db_path)
         self.create_tables()
+        self.product_data_access = ProductDataAccess(self.conn)
+        self.transaction_data_access = TransactionDataAccess(self.conn)
+        self.config_data_access = ConfigDataAccess(self.conn)
+        self.config_data_access.set_default_config()
 
     def create_tables(self):
         self.conn.execute(
@@ -45,26 +48,19 @@ class Database(IDataAccess):
             );
             """
         )
-        self.set_default_config()
 
-    def set_default_config(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT value FROM config WHERE key=?", ("pin",))
-        pin = cursor.fetchone()
+    def get_ProductDataAccess(self):
+        return self.product_data_access
+    
+    def get_TransactionDataAccess(self):
+        return self.transaction_data_access
 
-        if pin is None:
-            cursor.execute("INSERT INTO config (key, value) VALUES (?, ?)", ("pin", "1111"))
-            self.conn.commit()
+    def get_ConfigDataAccess(self):
+        return self.config_data_access
 
-    def get_config(self, key):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT value FROM config WHERE key=?", (key,))
-        value = cursor.fetchone()
-        return value[0] if value else None
-
-    def update_config(self, key, value):
-        self.conn.execute("UPDATE config SET value=? WHERE key=?", (value, key))
-        self.conn.commit()
+class ProductDataAccess(IProductDataAccess):
+    def __init__(self, conn):
+        self.conn = conn
 
     def delete_product(self, product_name):
         try:
@@ -124,6 +120,24 @@ class Database(IDataAccess):
         except Error as e:
             print(e)
 
+    def update_product_image_path(self, product_name, image_path):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("UPDATE products SET image_path = ? WHERE name = ?", (image_path, product_name))
+            self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def get_product_image_path(self, product_name):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT image_path FROM products WHERE name = ?", (product_name,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+class TransactionDataAccess(ITransactionDataAccess):
+    def __init__(self, conn):
+        self.conn = conn
+
     def add_transaction(self, transaction, remaining_stock):
         try:
             cursor = self.conn.cursor()
@@ -139,16 +153,25 @@ class Database(IDataAccess):
         transactions = [Transaction(row[0], row[1], row[2], datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")) for row in rows]
         return transactions
 
-    def update_product_image_path(self, product_name, image_path):
-        try:
-            cursor = self.conn.cursor()
-            cursor.execute("UPDATE products SET image_path = ? WHERE name = ?", (image_path, product_name))
-            self.conn.commit()
-        except Error as e:
-            print(e)
+class ConfigDataAccess(IConfigDataAccess):
+    def __init__(self, conn):
+        self.conn = conn
 
-    def get_product_image_path(self, product_name):
+    def set_default_config(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT image_path FROM products WHERE name = ?", (product_name,))
-        row = cursor.fetchone()
-        return row[0] if row else None
+        cursor.execute("SELECT value FROM config WHERE key=?", ("pin",))
+        pin = cursor.fetchone()
+
+        if pin is None:
+            cursor.execute("INSERT INTO config (key, value) VALUES (?, ?)", ("pin", "1111"))
+            self.conn.commit()
+
+    def get_config(self, key):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT value FROM config WHERE key=?", (key,))
+        value = cursor.fetchone()
+        return value[0] if value else None
+
+    def update_config(self, key, value):
+        self.conn.execute("UPDATE config SET value=? WHERE key=?", (value, key))
+        self.conn.commit()

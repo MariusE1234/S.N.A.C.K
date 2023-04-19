@@ -1,12 +1,11 @@
 #File-imports
 from layer1.entities import Coin, Transaction
-from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
+from layer2.interfaces import ITransactionDataAccess, IProductDataAccess, IProductList, ITransactionLog
 
 class TransactionLog(ITransactionLog):
-    def __init__(self, data_access: IDataAccess):
+    def __init__(self, data_access: ITransactionDataAccess):
         self.data_access = data_access
         self.transactions = self.data_access.get_transactions()
-
 
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
@@ -16,7 +15,7 @@ class TransactionLog(ITransactionLog):
         return self.transactions
 
 class ProductList(IProductList):
-    def __init__(self, data_access: IDataAccess):
+    def __init__(self, data_access: IProductDataAccess):
         self.data_access = data_access
         self.products = self.data_access.get_products()
     

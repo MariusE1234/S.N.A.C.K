@@ -1,5 +1,5 @@
-#File-imports
-from layer2.interfaces import IDataAccess, IProductList, ITransactionLog
+# File-imports
+from layer2.interfaces import IProductList, ITransactionLog
 from layer2.core_functions import ProductManager, TransactionManager
 
 class VendingMachine:
@@ -7,7 +7,6 @@ class VendingMachine:
         self,
         product_list: IProductList,
         coin_slot,
-        data_access: IDataAccess,
         transaction_log: ITransactionLog
     ):  # Dependency Injection
         self.product_manager = ProductManager(product_list)
