@@ -139,12 +139,6 @@ class Database(IDataAccess):
         transactions = [Transaction(row[0], row[1], row[2], datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")) for row in rows]
         return transactions
 
-    def get_pin(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT value FROM config WHERE key = 'pin'")
-        row = cursor.fetchone()
-        return row[0] if row else None
-
     def update_product_image_path(self, product_name, image_path):
         try:
             cursor = self.conn.cursor()

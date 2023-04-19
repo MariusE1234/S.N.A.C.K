@@ -51,10 +51,6 @@ class IDataAccess(ABC):
         pass
 
     @abstractmethod
-    def get_pin(self):
-        pass
-
-    @abstractmethod
     def update_product_image_path(self, product_name, image_path):
         pass
 
