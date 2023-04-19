@@ -9,7 +9,7 @@ class CoinsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
-        self.setWindowIcon(QIcon("02_Quellcode//images//money_icon.jpg"))
+        self.setWindowIcon(QIcon("04_Images//money_icon.jpg"))
         self.coins = [Coin(value) for value in Coin.available_coins]
         self.selected_coin = None
         self.setup_ui()
@@ -20,7 +20,7 @@ class CoinsDialog(QDialog):
 
         coins_layout = QHBoxLayout()  # Ändern Sie das Layout von QGridLayout zu QHBoxLayout
         for i, coin in enumerate(self.coins):
-            pixmap = QPixmap(f"02_Quellcode//images//coin_{coin.value}.jpg")  # Pfad zum Bild der jeweiligen Münze
+            pixmap = QPixmap(f"04_Images//coin_{coin.value}.jpg")  # Pfad zum Bild der jeweiligen Münze
             pixmap = pixmap.scaled(50, 50, Qt.KeepAspectRatio)  # Skalieren Sie das Bild auf die gewünschte Größe
             icon = QIcon(pixmap)
             button = QPushButton()
@@ -54,7 +54,7 @@ class PinDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("PIN eingeben")
-        self.setWindowIcon(QIcon("02_Quellcode//images//lock_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//lock_icon.png"))
         self.setup_ui()
         self.user_canceled = False
 
@@ -110,7 +110,7 @@ class ConfigDialog(QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
-        self.setWindowIcon(QIcon("02_Quellcode//images//config_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//config_icon.png"))
         self.product_list = product_list
         self.transaction_log = transaction_log
         self.data_access = data_access  # Speichern des data_access-Objekts
@@ -293,7 +293,7 @@ class AddProductDialog(QDialog):
         super().__init__(parent)
         self.existing_names = existing_names if existing_names else []
         self.setWindowTitle("Produkt hinzufügen")
-        self.setWindowIcon(QIcon("02_Quellcode//images//add_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//add_icon.png"))
         self.setup_ui()
 
     def setup_ui(self):
@@ -375,7 +375,7 @@ class EditProductDialog(AddProductDialog):
     def __init__(self, parent=None, existing_names=None, current_product=None):
         super().__init__(parent, existing_names)
         self.setWindowTitle("Produkt bearbeiten")
-        self.setWindowIcon(QIcon("02_Quellcode//images//edit_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//edit_icon.png"))
         self.current_product = current_product
         if current_product:
             self.name_edit.setText(current_product.name)
@@ -437,7 +437,7 @@ class InfoDialog(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle("Info - S.N.A.C.K")
-        self.setWindowIcon(QIcon("02_Quellcode//images//info_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//info_icon.png"))
 
         layout = QVBoxLayout()
 
@@ -487,13 +487,13 @@ class InfoDialog(QDialog):
 
         emoji_label = QLabel()
         if satisfaction_value < 50:
-            emoji_pixmap = QPixmap("02_Quellcode//images//sad.png")
+            emoji_pixmap = QPixmap("04_Images//sad.png")
             message = "Es tut uns leid, dass dir unser Verkaufsautomat nicht gefallen hat."
         elif 50 <= satisfaction_value < 75:
-            emoji_pixmap = QPixmap("02_Quellcode//images//neutral.png")
+            emoji_pixmap = QPixmap("04_Images//neutral.png")
             message = "Danke für dein Feedback. Wir werden daran arbeiten, unseren Verkaufsautomaten zu verbessern."
         else:
-            emoji_pixmap = QPixmap("02_Quellcode//images//happy.png")
+            emoji_pixmap = QPixmap("04_Images//happy.png")
             message = "Wir freuen uns, dass dir unser Verkaufsautomat gefällt. Danke für dein positives Feedback!"
 
         # Skaliere das Bild auf die gewünschte Größe
@@ -530,7 +530,7 @@ class VendingMachineGUI(QWidget):
 
     def setup_ui(self):
         self.setWindowTitle("S.N.A.C.K Verkaufsautomat")
-        self.setWindowIcon(QIcon("02_Quellcode//images//vm_icon.png"))
+        self.setWindowIcon(QIcon("04_Images//vm_icon.png"))
         self.product_buttons = []
         layout = QGridLayout()
 
