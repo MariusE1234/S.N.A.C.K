@@ -1,8 +1,9 @@
+#File-imports
+from layer3.database import Database
+from layer3.gui import VendingMachineGUI
+#libraries-imports
 import sys
-from frameworks_and_drivers import VendingMachineGUI
 from PyQt5.QtWidgets import QApplication
-from database import Database
-
 
 if __name__ == "__main__":
 

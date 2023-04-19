@@ -1,8 +1,11 @@
-import sqlite3
+#File-imports
+from layer1.entities import Transaction, Product
+from layer2.interfaces import IDataAccess
+#libraries-imports
 import datetime
+import sqlite3
 from sqlite3 import Error
-from entities import Transaction, Product, Coin
-from use_cases import IDataAccess
+
 
 db_path = "03_SQL//database//vendingMachine.db"
 
