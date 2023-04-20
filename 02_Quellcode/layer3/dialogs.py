@@ -3,7 +3,7 @@ from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
 from layer2.validator import ProductValidator
 from layer2.core_functions import SalesCalculator
-from layer3.controllers import ConfigController
+from layer3.controllers import ConfigController, StatController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -502,18 +502,15 @@ class InfoDialog(QDialog):
 
 class StatDialog(QDialog):
     def __init__(self, parent, transaction_data_access):
-        salesCalc = SalesCalculator()
-        total_sales = salesCalc.get_total_sales(transaction_data_access.get_transactions())
-        sold_products = salesCalc.get_sold_products(transaction_data_access.get_transactions())
-
+        statController = StatController(transaction_data_access)
         super().__init__(parent)
         self.setWindowTitle("Statistik")
         layout = QGridLayout()
 
-        sales_label = QLabel(f"Gesamteinnahmen: {total_sales} €")
+        sales_label = QLabel(f"Gesamteinnahmen: {statController.get_total_sales()} €")
         layout.addWidget(sales_label)
 
-        product_label = QLabel(f"verkaufte Produkte: {sold_products}")
+        product_label = QLabel(f"verkaufte Produkte: {statController.get_sold_products()}")
         layout.addWidget(product_label)
 
         ok_button = QPushButton("OK")

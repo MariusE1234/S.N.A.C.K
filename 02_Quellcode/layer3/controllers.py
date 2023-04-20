@@ -54,3 +54,16 @@ class ConfigController:
     def update_config(self, value, new_pin):
         self.config_data_access.update_config(value, new_pin)
     
+class StatController:
+    def __init__(
+        self,
+        transaction_data_access: ITransactionDataAccess = None
+    ):
+        self.transaction_data_access = transaction_data_access
+        self.salesCalc = SalesCalculator()
+
+    def get_total_sales(self):
+        return self.salesCalc.get_total_sales(self.transaction_data_access.get_transactions())
+    
+    def get_sold_products(self):
+        return self.salesCalc.get_sold_products(self.transaction_data_access.get_transactions())
