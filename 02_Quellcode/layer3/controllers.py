@@ -54,8 +54,3 @@ class ConfigController:
     def update_config(self, value, new_pin):
         self.config_data_access.update_config(value, new_pin)
     
-    def get_stats(self):
-        salesCalc = SalesCalculator()
-        total_sales = salesCalc.get_total_sales(self.transaction_data_access.get_transactions())
-        sold_products = salesCalc.get_sold_products(self.transaction_data_access.get_transactions())
-        return total_sales, sold_products

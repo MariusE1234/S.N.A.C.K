@@ -2,6 +2,7 @@
 from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
 from layer2.validator import ProductValidator
+from layer2.core_functions import SalesCalculator
 from layer3.controllers import ConfigController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
@@ -111,7 +112,8 @@ class ConfigDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
         self.setWindowIcon(QIcon("04_Images//config_icon.png"))
-        self.controller = ConfigController(product_list, transaction_data_access, product_data_access, config_data_access)
+        self.transaction_data_access = transaction_data_access
+        self.configController = ConfigController(product_list, transaction_data_access, product_data_access, config_data_access)
         self.setup_ui()
 
     def setup_ui(self):
@@ -127,11 +129,11 @@ class ConfigDialog(QDialog):
         self.product_table.setColumnWidth(1, 200)
         self.product_table.setColumnWidth(2, 200)
         self.product_table.setColumnWidth(3, 400)
-        self.product_table.setRowCount(len(self.controller.product_list.products))
+        self.product_table.setRowCount(len(self.configController.product_list.products))
         self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis", "Bestand", "Bildpfad"])
         self.product_table.verticalHeader().setVisible(False)
 
-        for i, product in enumerate(self.controller.product_list.products):
+        for i, product in enumerate(self.configController.product_list.products):
             name_item = QTableWidgetItem(product.name)
             price_item = QTableWidgetItem(str(product.price))
             stock_item = QTableWidgetItem(str(product.stock))
@@ -188,7 +190,7 @@ class ConfigDialog(QDialog):
         transaction_layout.addWidget(transaction_label)
 
         self.transaction_list = QListWidget()
-        transaction_log = self.controller.transaction_data_access.get_transactions()
+        transaction_log = self.configController.transaction_data_access.get_transactions()
         if transaction_log:
             for transaction in transaction_log:
                 self.transaction_list.addItem(str(transaction))
@@ -208,7 +210,7 @@ class ConfigDialog(QDialog):
 
         if result == QDialog.Accepted:
             new_product = add_product_dialog.get_product()
-            success = self.controller.add_product(new_product, self.product_table)
+            success = self.configController.add_product(new_product, self.product_table)
             if success:
                 row = self.product_table.rowCount()
                 self.product_table.setRowCount(row + 1)
@@ -236,7 +238,7 @@ class ConfigDialog(QDialog):
             if result == QDialog.Accepted:
                 edited_product = edit_product_dialog.get_product()
                 current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
-                success = self.controller.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
+                success = self.configController.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
                 if success:
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
@@ -257,7 +259,7 @@ class ConfigDialog(QDialog):
         row = self.product_table.currentRow()
         if row != -1:
             product_name = self.product_table.item(row, 0).text()
-            self.controller.delete_product(product_name)
+            self.configController.delete_product(product_name)
             self.product_table.removeRow(row)
 
     def change_pin(self):
@@ -268,15 +270,14 @@ class ConfigDialog(QDialog):
         
         if result == QDialog.Accepted:
             new_pin = new_pin_dialog.get_pin()
-            self.controller.update_config("pin", new_pin)  
+            self.configController.update_config("pin", new_pin)  
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
 
     def get_products_from_table(self):
-        return self.controller.get_products_from_table(self.product_table)
+        return self.configController.get_products_from_table(self.product_table)
         
     def show_stat_dialog(self):
-        stats = self.controller.get_stats()
-        stat_dialog = StatDialog(self, stats[0], stats[1])
+        stat_dialog = StatDialog(self, self.transaction_data_access)
         stat_dialog.exec_()
 
 class AddProductDialog(QDialog):
@@ -500,7 +501,11 @@ class InfoDialog(QDialog):
         feedback_dialog.exec()
 
 class StatDialog(QDialog):
-    def __init__(self, parent, total_sales, sold_products):
+    def __init__(self, parent, transaction_data_access):
+        salesCalc = SalesCalculator()
+        total_sales = salesCalc.get_total_sales(transaction_data_access.get_transactions())
+        sold_products = salesCalc.get_sold_products(transaction_data_access.get_transactions())
+
         super().__init__(parent)
         self.setWindowTitle("Statistik")
         layout = QGridLayout()
