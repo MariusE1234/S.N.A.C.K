@@ -2,12 +2,11 @@
 from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
 from layer2.validator import ProductValidator
-from layer2.core_functions import SalesCalculator
 from layer3.controllers import ConfigController, StatController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
-from PyQt5.QtWidgets import QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog, QSlider
+from PyQt5.QtWidgets import QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog, QSlider
 from abc import abstractmethod
 
 class CoinsDialog(QDialog):
@@ -66,7 +65,6 @@ class PinButton(QPushButton):
         current_text = self.pin_dialog.pin_input.text()
         self.pin_dialog.pin_input.setText(current_text + str(self.number))
 
-
 class PinDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -111,11 +109,11 @@ class PinDialog(QDialog):
 class ConfigDialog(QDialog):
     def __init__(
         self,
-        parent=None,
         product_list: IProductList = None,
         transaction_data_access: ITransactionDataAccess = None,
         product_data_access: IProductDataAccess = None,
-        config_data_access: IConfigDataAccess = None
+        config_data_access: IConfigDataAccess = None,
+        parent=None
     ):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")

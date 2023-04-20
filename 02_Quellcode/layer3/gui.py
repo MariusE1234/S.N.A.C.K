@@ -2,22 +2,24 @@
 from layer2.interfaces import IDatabase
 from layer2.core_functions import CoinSlot, ProductList, TransactionLog
 from layer2.vending_machine import VendingMachine
-from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog, StatDialog
+from layer3.factorys import ProductButtonFactory, DialogFactory
 #libraries-imports
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QDialog, QPushButton, QGridLayout, QWidget, QMessageBox, QGroupBox
 
 class VendingMachineGUI(QWidget):
-    def __init__(self, db: IDatabase):
+    def __init__(self, db: IDatabase, product_button_factory: ProductButtonFactory, dialog_factory: DialogFactory):
         super().__init__()
+        self.product_button_factory = product_button_factory
+        self.dialog_factory = dialog_factory
         self.product_data_access = db.get_ProductDataAccess()
         self.transaction_data_access = db.get_TransactionDataAccess()
         self.config_data_access = db.get_ConfigDataAccess()
         self.product_list = ProductList(self.product_data_access)
         self.coin_slot = CoinSlot()
         self.transaction_log = TransactionLog(self.transaction_data_access)
-        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)  # Dependency Injection
+        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)
         self.setup_ui()
 
     def setup_ui(self):
@@ -66,9 +68,7 @@ class VendingMachineGUI(QWidget):
         self.setLayout(layout)
 
     def create_product_button(self, product):
-        button = QPushButton(str(product.name) + "\n" + str(product.price))
-        button.setIcon(QIcon(product.image_path))
-        button.setIconSize(QSize(100, 100))
+        button = self.product_button_factory.create_product_button(product)
         button.clicked.connect(lambda _, p=product: self.select_product(p))
         return button
 
@@ -84,11 +84,10 @@ class VendingMachineGUI(QWidget):
         self.coin_label.setText(str(amount))
 
     def show_coin_dialog(self):
-        dialog = CoinsDialog(self)
+        dialog = self.dialog_factory.create_coins_dialog()
         if dialog.exec_() == QDialog.Accepted:
             self.coin_slot.add_coin(dialog.selected_coin)
             self.coin_label.setText(f"{self.coin_slot.get_total_amount()} €")
-
 
     def update_product_buttons(self):
         for i, product in enumerate(self.vending_machine.get_products()):
@@ -101,7 +100,7 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = ConfigDialog(self, self.product_list, self.transaction_data_access, self.product_data_access, self.config_data_access)
+            dialog = self.dialog_factory.create_config_dialog(self.product_list, self.transaction_data_access, self.product_data_access, self.config_data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products_from_table()
                 self.product_list.delete_products()
@@ -124,7 +123,7 @@ class VendingMachineGUI(QWidget):
             products_layout.addWidget(button, i // 3, i % 3)
 
     def show_pin_dialog(self):
-        pin_dialog = PinDialog(self)
+        pin_dialog = self.dialog_factory.create_pin_dialog()
         result = pin_dialog.exec_()
 
         if result == QDialog.Accepted:
@@ -140,5 +139,5 @@ class VendingMachineGUI(QWidget):
              return False
          
     def show_info_dialog(self):
-        info_dialog = InfoDialog(self)
+        info_dialog = self.dialog_factory.create_info_dialog()
         info_dialog.exec_()
