@@ -101,9 +101,9 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = ConfigDialog(self, self.transaction_log, self.product_list, self.product_data_access, self.config_data_access)
+            dialog = ConfigDialog(self, self.product_list, self.transaction_data_access, self.product_data_access, self.config_data_access)
             if dialog.exec_() == QDialog.Accepted:
-                new_products = dialog.get_products()
+                new_products = dialog.get_products_from_table()
                 self.product_list.delete_products()
                 self.product_list.save_products(new_products)
                 self.refresh_product_buttons()
