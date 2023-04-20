@@ -8,6 +8,7 @@ from layer3.controllers import ConfigController, StatController
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
 from PyQt5.QtWidgets import QLabel, QDialog, QTableWidgetItem, QPushButton, QGridLayout, QVBoxLayout, QHBoxLayout, QTableWidget, QScrollArea, QListWidget, QWidget, QLineEdit, QMessageBox, QSpinBox, QDoubleSpinBox,QFileDialog, QSlider
+from abc import abstractmethod
 
 class CoinsDialog(QDialog):
     def __init__(self, parent=None):
@@ -280,13 +281,98 @@ class ConfigDialog(QDialog):
         stat_dialog = StatDialog(self, self.transaction_data_access)
         stat_dialog.exec_()
 
-class AddProductDialog(QDialog):
-    def __init__(self, parent=None, existing_names=None):
+class ProductDialog(QDialog):
+    def __init__(self, parent=None, existing_names=None, current_product=None):
         super().__init__(parent)
         self.existing_names = existing_names if existing_names else []
-        self.setWindowTitle("Produkt hinzufügen")
-        self.setWindowIcon(QIcon("04_Images//add_icon.png"))
+        self.current_product = current_product
+        self.setWindowTitle(self.get_dialog_title())
+        self.setWindowIcon(QIcon(self.get_dialog_icon()))
         self.setup_ui()
+
+    @abstractmethod
+    def get_dialog_title(self):
+        pass
+
+    @abstractmethod
+    def get_dialog_icon(self):
+        pass
+
+    def setup_ui(self):
+        layout = QGridLayout()
+
+        self.name_label = QLabel("Produktname:")
+        layout.addWidget(self.name_label, 0, 0)
+        self.name_edit = QLineEdit()
+        layout.addWidget(self.name_edit, 0, 1)
+
+        self.price_label = QLabel("Preis:")
+        layout.addWidget(self.price_label, 1, 0)
+        self.price_edit = QDoubleSpinBox()
+        self.price_edit.setRange(0.00, 999.99)
+        self.price_edit.setSingleStep(0.50)
+        layout.addWidget(self.price_edit, 1, 1)
+
+        self.stock_label = QLabel("Bestand:")
+        layout.addWidget(self.stock_label, 2, 0)
+        self.stock_edit = QSpinBox()
+        self.stock_edit.setRange(0, 999)
+        layout.addWidget(self.stock_edit, 2, 1)
+
+        self.image_label = QLabel("Bild:")
+        layout.addWidget(self.image_label, 3, 0)
+        self.image_path_edit = QLineEdit()
+        self.image_path_edit.setReadOnly(True)
+        layout.addWidget(self.image_path_edit, 3, 1)
+        self.choose_image_button = QPushButton("Bild auswählen")
+        self.choose_image_button.clicked.connect(self.choose_image)
+        layout.addWidget(self.choose_image_button, 3, 2)
+
+        self.cancel_button = QPushButton("Abbrechen")
+        self.cancel_button.clicked.connect(self.reject)
+        layout.addWidget(self.cancel_button, 4, 0)
+
+        self.add_button = QPushButton(self.get_submit_button_text())
+        self.add_button.clicked.connect(self.save_product)
+        layout.addWidget(self.add_button, 4, 1)
+
+        self.setLayout(layout)
+
+        if self.current_product:
+            self.name_edit.setText(self.current_product.name)
+            self.price_edit.setValue(self.current_product.price)
+            self.stock_edit.setValue(self.current_product.stock)
+            self.image_path_edit.setText(self.current_product.image_path)
+
+    def choose_image(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "",
+                                                   "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
+        if file_name:
+            self.image_path_edit.setText(file_name)
+
+    @abstractmethod
+    def get_submit_button_text(self):
+        pass
+
+    @abstractmethod
+    def save_product(self):
+        pass
+
+    def get_product(self):
+        name = self.name_edit.text().strip()
+        price = self.price_edit.value()
+        stock = self.stock_edit.value()
+        image_path = self.image_path_edit.text().strip()
+        return Product(name, price, stock, image_path)
+
+class AddProductDialog(ProductDialog):
+    def get_dialog_title(self):
+        return "Produkt hinzufügen"
+
+    def get_dialog_icon(self):
+        return "04_Images//add_icon.png"
 
     def setup_ui(self):
         layout = QGridLayout()
@@ -323,20 +409,12 @@ class AddProductDialog(QDialog):
         layout.addWidget(self.cancel_button, 4, 0)
 
         self.add_button = QPushButton("Hinzufügen")
-        self.add_button.clicked.connect(self.add_product)
+        self.add_button.clicked.connect(self.save_product)
         layout.addWidget(self.add_button, 4, 1)
 
         self.setLayout(layout)
 
-    def choose_image(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        file_name, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "",
-                                                   "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
-        if file_name:
-            self.image_path_edit.setText(file_name)
-
-    def add_product(self):
+    def save_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
@@ -354,39 +432,23 @@ class AddProductDialog(QDialog):
 
         self.accept()
 
-    def get_product(self):
-        name = self.name_edit.text().strip()
-        price = self.price_edit.value()
-        stock = self.stock_edit.value()
-        image_path = self.image_path_edit.text().strip()
-        return Product(name, price, stock, image_path)
-
-class EditProductDialog(AddProductDialog):
+class EditProductDialog(ProductDialog):
     def __init__(self, parent=None, existing_names=None, current_product=None):
-        super().__init__(parent, existing_names)
+        super().__init__(parent, existing_names, current_product)
         self.setWindowTitle("Produkt bearbeiten")
         self.setWindowIcon(QIcon("04_Images//edit_icon.png"))
-        self.current_product = current_product
-        if current_product:
-            self.name_edit.setText(current_product.name)
-            self.price_edit.setValue(current_product.price)
-            self.stock_edit.setValue(current_product.stock)
-            # Setzen des Bildpfads des aktuellen Produkts im image_path_edit-Textfeld
-            self.image_path_edit.setText(current_product.image_path)
         self.add_button.setText("Speichern")
-        self.add_button.clicked.disconnect(self.add_product)
-        self.add_button.clicked.connect(self.edit_product)
 
-        layout = self.layout()
-        self.image_label = QLabel("Bild:")
-        layout.addWidget(self.image_label, 3, 0)
-        self.image_path_edit.setReadOnly(False)
-        layout.addWidget(self.image_path_edit, 3, 1)
-        self.choose_image_button = QPushButton("Bild auswählen")
-        self.choose_image_button.clicked.connect(self.choose_image)
-        layout.addWidget(self.choose_image_button, 3, 2)
-        
-    def edit_product(self):
+    def get_dialog_title(self):
+        return "Produkt bearbeiten"
+
+    def get_dialog_icon(self):
+        return "04_Images//edit_icon.png"
+
+    def get_submit_button_text(self):
+        return "Speichern"
+
+    def save_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
@@ -403,19 +465,9 @@ class EditProductDialog(AddProductDialog):
         self.current_product.image_path = image_path
         self.accept()
 
-    def browse_image(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        file_path, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "", "Image Files (*.png *.jpg *.bmp *.gif *.jpeg)", options=options)
-        if file_path:
-            self.image_path_edit.setText(file_path)
-    
-    def get_product(self):
-        name = self.name_edit.text().strip()
-        price = self.price_edit.value()
-        stock = self.stock_edit.value()
-        image_path = self.image_path_edit.text().strip()
-        return Product(name, price, stock, image_path)
+
+
+
 
 class FeedbackDialog(QDialog):
     def __init__(self, satisfaction_value, parent=None):
