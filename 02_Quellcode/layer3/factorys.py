@@ -1,16 +1,18 @@
-#File-imports
+# File-imports
 from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
-#libraries-imports
+# Libraries-imports
 from abc import ABC, abstractmethod
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QPushButton
+
 
 class ProductButtonFactory(ABC):
 
     @abstractmethod
     def create_product_button(self, product):
         pass
+
 
 class DefaultProductButtonFactory(ProductButtonFactory):
 
@@ -20,35 +22,54 @@ class DefaultProductButtonFactory(ProductButtonFactory):
         button.setIconSize(QSize(100, 100))
         return button
 
-class DialogFactory(ABC):
+
+class CoinsDialogFactory(ABC):
 
     @abstractmethod
     def create_coins_dialog(self):
         pass
 
-    @abstractmethod
-    def create_pin_dialog(self):
-        pass
 
-    @abstractmethod
-    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access):
-        pass
-
-    @abstractmethod
-    def create_info_dialog(self):
-        pass
-
-class DefaultDialogFactory(DialogFactory):
+class DefaultCoinsDialogFactory(CoinsDialogFactory):
 
     def create_coins_dialog(self):
         return CoinsDialog()
 
+
+class PinDialogFactory(ABC):
+
+    @abstractmethod
+    def create_pin_dialog(self):
+        pass
+
+
+class DefaultPinDialogFactory(PinDialogFactory):
+
     def create_pin_dialog(self):
         return PinDialog()
+
+
+class ConfigDialogFactory(ABC):
+
+    @abstractmethod
+    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access):
+        pass
+
+
+class DefaultConfigDialogFactory(ConfigDialogFactory):
 
     def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access):
         return ConfigDialog(product_list, transaction_data_access, product_data_access, config_data_access)
 
+
+class InfoDialogFactory(ABC):
+
+    @abstractmethod
+    def create_info_dialog(self):
+        pass
+
+
+class DefaultInfoDialogFactory(InfoDialogFactory):
+
     def create_info_dialog(self):
         return InfoDialog()
-

@@ -72,7 +72,6 @@ class ProductManager:
         self.product_list.delete_products()
         self.product_list.save_products(self.product_list.products)
 
-
 class TransactionManager:
     def __init__(self, coin_slot, transaction_log: ITransactionLog):
         self.coin_slot = coin_slot
@@ -83,7 +82,6 @@ class TransactionManager:
         remaining_stock = product.stock - 1
         transaction = Transaction(product.name, product.price, remaining_stock)
         self.transaction_log.add_transaction(transaction)
-
 
 class SalesCalculator:
     @staticmethod
