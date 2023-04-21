@@ -1,26 +1,22 @@
-#File-imports
-from layer2.interfaces import IDatabase
-from layer2.core_functions import CoinSlot, ProductList, TransactionLog
-from layer2.vending_machine import VendingMachine
+# File-imports
+from layer3.controllers import VendingMachineController
 from layer3.factorys import ProductButtonFactory, DialogFactory
 from layer3.ui_updater import UIUpdater
-#libraries-imports
+# libraries-imports
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QDialog, QPushButton, QGridLayout, QWidget, QMessageBox, QGroupBox
 
+
+
+
+
 class VendingMachineGUI(QWidget):
-    def __init__(self, db: IDatabase, product_button_factory: ProductButtonFactory, dialog_factory: DialogFactory):
+    def __init__(self, controller: VendingMachineController, product_button_factory: ProductButtonFactory, dialog_factory: DialogFactory):
         super().__init__()
+        self.controller = controller
         self.product_button_factory = product_button_factory
         self.dialog_factory = dialog_factory
-        self.product_data_access = db.get_ProductDataAccess()
-        self.transaction_data_access = db.get_TransactionDataAccess()
-        self.config_data_access = db.get_ConfigDataAccess()
-        self.product_list = ProductList(self.product_data_access)
-        self.coin_slot = CoinSlot()
-        self.transaction_log = TransactionLog(self.transaction_data_access)
-        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)
         self.product_buttons = []
         self.setup_ui()
 
@@ -39,7 +35,7 @@ class VendingMachineGUI(QWidget):
         products_layout = QGridLayout()
         self.products_groupbox.setLayout(products_layout)
 
-        for i, product in enumerate(self.vending_machine.get_products()):
+        for i, product in enumerate(self.controller.get_products()):
             button = self.create_product_button(product)
             self.product_buttons.append(button)
             products_layout.addWidget(button, i // 3, i % 3)
@@ -68,9 +64,9 @@ class VendingMachineGUI(QWidget):
         layout.addWidget(self.info_button, 6, 3)
 
         self.setLayout(layout)
-        
+
         self.ui_updater = UIUpdater(self.products_groupbox, self.product_buttons, self.status_label, self.coin_label, self.product_button_factory)
-        self.ui_updater.update_product_buttons(self.vending_machine, self.select_product)
+        self.ui_updater.update_product_buttons(self.controller, self.select_product)
 
     def create_product_button(self, product):
         button = self.product_button_factory.create_product_button(product)
@@ -78,24 +74,24 @@ class VendingMachineGUI(QWidget):
         return button
 
     def select_product(self, product):
-        self.vending_machine.select_product(product)
+        self.controller.select_product(product)
         self.ui_updater.update_status_label(f"Bitte werfen Sie {product.price} € ein.")
 
     def buy_product(self):
-        message = self.vending_machine.buy_product()
+        message = self.controller.buy_product()
         self.ui_updater.update_status_label(message)
-        amount = self.coin_slot.get_total_amount()
+        amount = self.controller.get_total_amount()
         self.ui_updater.update_coin_label(amount)
 
     def show_coin_dialog(self):
         dialog = self.dialog_factory.create_coins_dialog()
         if dialog.exec_() == QDialog.Accepted:
-            self.coin_slot.add_coin(dialog.selected_coin)
-            amount = self.coin_slot.get_total_amount()
+            self.controller.add_coin(dialog.selected_coin)
+            amount = self.controller.get_total_amount()
             self.ui_updater.update_coin_label(amount)
 
     def update_product_buttons(self):
-        for i, product in enumerate(self.vending_machine.get_products()):
+        for i, product in enumerate(self.controller.get_products()):
             button = self.product_buttons[i]
             button.setText(str(product.name) + "\n" + str(product.price))
             button.setIcon(QIcon(product.image_path))
@@ -105,15 +101,15 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = self.dialog_factory.create_config_dialog(self.product_list, self.transaction_data_access, self.product_data_access, self.config_data_access)
+            dialog = self.dialog_factory.create_config_dialog(self.controller.product_list, self.controller.transaction_data_access, self.controller.product_data_access, self.controller.config_data_access)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products_from_table()
-                self.product_list.delete_products()
-                self.product_list.save_products(new_products)
+                self.controller.product_list.delete_products()
+                self.controller.product_list.save_products(new_products)
                 self.refresh_product_buttons()
 
     def refresh_product_buttons(self):
-        self.ui_updater.update_product_buttons(self.vending_machine, self.select_product)
+        self.ui_updater.update_product_buttons(self.controller, self.select_product)
 
     def show_pin_dialog(self):
         pin_dialog = self.dialog_factory.create_pin_dialog()
@@ -121,7 +117,7 @@ class VendingMachineGUI(QWidget):
 
         if result == QDialog.Accepted:
             entered_pin = pin_dialog.get_pin()
-            correct_pin = str(self.config_data_access.get_config("pin"))
+            correct_pin = str(self.controller.config_data_access.get_config("pin"))
 
             if entered_pin == correct_pin:
                 return True
@@ -129,8 +125,9 @@ class VendingMachineGUI(QWidget):
                 QMessageBox.warning(self, "Falscher Pin", "Zugriff verweigert")
                 return False
         else:
-             return False
-         
+            return False
+
     def show_info_dialog(self):
         info_dialog = self.dialog_factory.create_info_dialog()
         info_dialog.exec_()
+

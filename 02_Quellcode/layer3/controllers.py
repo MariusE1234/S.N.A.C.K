@@ -1,8 +1,37 @@
 #File-imports
 from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList, ITransactionLog
-from layer2.validator import ProductValidator
 from layer2.core_functions import SalesCalculator
+# File-imports
+from layer2.interfaces import IDatabase
+from layer2.core_functions import CoinSlot, ProductList, TransactionLog
+from layer2.vending_machine import VendingMachine
+
+
+class VendingMachineController:
+    def __init__(self, db: IDatabase):
+        self.product_data_access = db.get_ProductDataAccess()
+        self.transaction_data_access = db.get_TransactionDataAccess()
+        self.config_data_access = db.get_ConfigDataAccess()
+        self.product_list = ProductList(self.product_data_access)
+        self.coin_slot = CoinSlot()
+        self.transaction_log = TransactionLog(self.transaction_data_access)
+        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)
+
+    def get_products(self):
+        return self.vending_machine.get_products()
+
+    def select_product(self, product):
+        self.vending_machine.select_product(product)
+
+    def buy_product(self):
+        return self.vending_machine.buy_product()
+
+    def add_coin(self, coin):
+        self.coin_slot.add_coin(coin)
+
+    def get_total_amount(self):
+        return self.coin_slot.get_total_amount()
 
 class ConfigController:
     def __init__(
