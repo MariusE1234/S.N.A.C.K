@@ -379,45 +379,8 @@ class AddProductDialog(ProductDialog):
     def get_dialog_icon(self):
         return "04_Images//add_icon.png"
 
-    def setup_ui(self):
-        layout = QGridLayout()
-
-        self.name_label = QLabel("Produktname:")
-        layout.addWidget(self.name_label, 0, 0)
-        self.name_edit = QLineEdit()
-        layout.addWidget(self.name_edit, 0, 1)
-
-        self.price_label = QLabel("Preis:")
-        layout.addWidget(self.price_label, 1, 0)
-        self.price_edit = QDoubleSpinBox()
-        self.price_edit.setRange(0.00, 999.99)
-        self.price_edit.setSingleStep(0.50)
-        layout.addWidget(self.price_edit, 1, 1)
-
-        self.stock_label = QLabel("Bestand:")
-        layout.addWidget(self.stock_label, 2, 0)
-        self.stock_edit = QSpinBox()
-        self.stock_edit.setRange(0, 999)
-        layout.addWidget(self.stock_edit, 2, 1)
-
-        self.image_label = QLabel("Bild:")
-        layout.addWidget(self.image_label, 3, 0)
-        self.image_path_edit = QLineEdit()
-        self.image_path_edit.setReadOnly(True)
-        layout.addWidget(self.image_path_edit, 3, 1)
-        self.choose_image_button = QPushButton("Bild auswählen")
-        self.choose_image_button.clicked.connect(self.choose_image)
-        layout.addWidget(self.choose_image_button, 3, 2)
-
-        self.cancel_button = QPushButton("Abbrechen")
-        self.cancel_button.clicked.connect(self.reject)
-        layout.addWidget(self.cancel_button, 4, 0)
-
-        self.add_button = QPushButton("Hinzufügen")
-        self.add_button.clicked.connect(self.save_product)
-        layout.addWidget(self.add_button, 4, 1)
-
-        self.setLayout(layout)
+    def get_submit_button_text(self):
+        return "Hinzufügen"
 
     def save_product(self):
         name = self.name_edit.text().strip()
@@ -438,12 +401,6 @@ class AddProductDialog(ProductDialog):
         self.accept()
 
 class EditProductDialog(ProductDialog):
-    def __init__(self, parent=None, existing_names=None, current_product=None):
-        super().__init__(parent, existing_names, current_product)
-        self.setWindowTitle("Produkt bearbeiten")
-        self.setWindowIcon(QIcon("04_Images//edit_icon.png"))
-        self.add_button.setText("Speichern")
-
     def get_dialog_title(self):
         return "Produkt bearbeiten"
 
