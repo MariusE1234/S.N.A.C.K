@@ -95,3 +95,14 @@ class IProductList(ABC):
     @abstractmethod
     def get_products(self):
         pass
+
+class IProductValidator(ABC):
+    @staticmethod
+    @abstractmethod
+    def is_valid_name(name, existing_names, current_product=None):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def is_valid_image_path(image_path):
+        pass

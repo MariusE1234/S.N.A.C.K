@@ -2,7 +2,7 @@
 #File-imports
 from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
-from layer2.validator import ProductValidator
+from layer2.validator import DefaultProductValidator
 from layer3.controllers import ConfigController, StatController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
@@ -389,12 +389,12 @@ class AddProductDialog(ProductDialog):
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        valid_name, name_error_msg = ProductValidator.is_valid_name(name, self.existing_names)
+        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names)
         if not valid_name:
             QMessageBox.warning(self, "Fehler", name_error_msg)
             return
 
-        valid_image_path, image_path_error_msg = ProductValidator.is_valid_image_path(image_path)
+        valid_image_path, image_path_error_msg = DefaultProductValidator.is_valid_image_path(image_path)
         if not valid_image_path:
             QMessageBox.warning(self, "Fehler", image_path_error_msg)
             return
@@ -417,7 +417,7 @@ class EditProductDialog(ProductDialog):
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        valid_name, name_error_msg = ProductValidator.is_valid_name(name, self.existing_names, self.current_product)
+        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names, self.current_product)
         if not valid_name:
             QMessageBox.warning(self, "Fehler", name_error_msg)
             return
