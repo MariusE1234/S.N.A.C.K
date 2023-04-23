@@ -3,6 +3,7 @@
 from layer3.controllers import VendingMachineController
 from layer3.factorys import ProductButtonFactory, CoinsDialogFactory, PinDialogFactory, ConfigDialogFactory, InfoDialogFactory
 from layer3.ui_updater import UIUpdater
+from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
 # libraries-imports
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
@@ -84,7 +85,7 @@ class VendingMachineGUI(QWidget):
         self.ui_updater.update_coin_label(amount)
 
     def show_coin_dialog(self):
-        dialog = self.coins_dialog_factory.create_coins_dialog()
+        dialog = self.coins_dialog_factory.create_coins_dialog(CoinsDialog)
         if dialog.exec_() == QDialog.Accepted:
             self.controller.add_coin(dialog.selected_coin)
             amount = self.controller.get_total_amount()
@@ -101,7 +102,7 @@ class VendingMachineGUI(QWidget):
 
     def show_config_dialog(self):
         if self.show_pin_dialog():
-            dialog = self.config_dialog_factory.create_config_dialog(self.controller.product_list, self.controller.transaction_data_access, self.controller.product_data_access, self.controller.config_data_access)
+            dialog = self.config_dialog_factory.create_config_dialog(self.controller.product_list, self.controller.transaction_data_access, self.controller.product_data_access, self.controller.config_data_access, ConfigDialog)
             if dialog.exec_() == QDialog.Accepted:
                 new_products = dialog.get_products_from_table()
                 self.controller.product_list.delete_products()
@@ -112,7 +113,7 @@ class VendingMachineGUI(QWidget):
         self.ui_updater.update_product_buttons(self.controller, self.select_product)
 
     def show_pin_dialog(self):
-        pin_dialog = self.pin_dialog_factory.create_pin_dialog()
+        pin_dialog = self.pin_dialog_factory.create_pin_dialog(PinDialog)
         result = pin_dialog.exec_()
 
         if result == QDialog.Accepted:
@@ -128,6 +129,6 @@ class VendingMachineGUI(QWidget):
             return False
 
     def show_info_dialog(self):
-        info_dialog = self.info_dialog_factory.create_info_dialog()
+        info_dialog = self.info_dialog_factory.create_info_dialog(InfoDialog)
         info_dialog.exec_()
 

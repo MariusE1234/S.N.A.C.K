@@ -1,6 +1,4 @@
 #Datei factorys.py
-#File-imports
-from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
 # Libraries-imports
 from abc import ABC, abstractmethod
 from PyQt5.QtCore import QSize
@@ -27,50 +25,50 @@ class DefaultProductButtonFactory(ProductButtonFactory):
 class CoinsDialogFactory(ABC):
 
     @abstractmethod
-    def create_coins_dialog(self):
+    def create_coins_dialog(self, CoinsDialog):
         pass
 
 
 class DefaultCoinsDialogFactory(CoinsDialogFactory):
 
-    def create_coins_dialog(self):
+    def create_coins_dialog(self, CoinsDialog):
         return CoinsDialog()
 
 
 class PinDialogFactory(ABC):
 
     @abstractmethod
-    def create_pin_dialog(self):
+    def create_pin_dialog(self, PinDialog):
         pass
 
 
 class DefaultPinDialogFactory(PinDialogFactory):
 
-    def create_pin_dialog(self):
+    def create_pin_dialog(self, PinDialog):
         return PinDialog()
 
 
 class ConfigDialogFactory(ABC):
 
     @abstractmethod
-    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access):
+    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access, ConfigDialog):
         pass
 
 
 class DefaultConfigDialogFactory(ConfigDialogFactory):
 
-    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access):
+    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access, ConfigDialog):
         return ConfigDialog(product_list, transaction_data_access, product_data_access, config_data_access)
 
 
 class InfoDialogFactory(ABC):
 
     @abstractmethod
-    def create_info_dialog(self):
+    def create_info_dialog(self, InfoDialog):
         pass
 
 
 class DefaultInfoDialogFactory(InfoDialogFactory):
 
-    def create_info_dialog(self):
+    def create_info_dialog(self, InfoDialog):
         return InfoDialog()
