@@ -1,11 +1,10 @@
 #Datei controllers.py
 #File-imports
-from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList, ITransactionLog
-from layer2.core_functions import SalesCalculator
+from layer2.core_functions import SalesCalculator, ProductManager,TransactionManager, CoinManager
 # File-imports
 from layer2.interfaces import IDatabase
-from layer2.core_functions import CoinSlot, ProductList, TransactionLog
+from layer2.core_functions import ProductList, TransactionLog
 from layer2.vending_machine import VendingMachine
 
 
@@ -15,9 +14,9 @@ class VendingMachineController:
         self.transaction_data_access = db.get_TransactionDataAccess()
         self.config_data_access = db.get_ConfigDataAccess()
         self.product_list = ProductList(self.product_data_access)
-        self.coin_slot = CoinSlot()
+        self.coin_manager = CoinManager()
         self.transaction_log = TransactionLog(self.transaction_data_access)
-        self.vending_machine = VendingMachine(self.product_list, self.coin_slot, self.transaction_log)
+        self.vending_machine = VendingMachine(self.product_list, self.coin_manager, self.transaction_log)
 
     def get_products(self):
         return self.vending_machine.get_products()
@@ -29,10 +28,10 @@ class VendingMachineController:
         return self.vending_machine.buy_product()
 
     def add_coin(self, coin):
-        self.coin_slot.add_coin(coin)
+        self.coin_manager.add_coin(coin)
 
     def get_total_amount(self):
-        return self.coin_slot.get_total_amount()
+        return self.coin_manager.get_total_amount()
 
 class ConfigController:
     def __init__(
@@ -78,29 +77,39 @@ class ConfigController:
             stock_item = product_table.item(i, 2)
             image_item = product_table.item(i, 3)
             if name_item is not None and price_item is not None and stock_item is not None:
-                products.append(Product(name_item.text(), float(price_item.text()), int(stock_item.text()),image_item.text()))
+                products.append(ProductManager().create_product(name_item.text(), float(price_item.text()), int(stock_item.text()),image_item.text()))
         return products
 
     def update_config(self, value, new_pin):
         self.config_data_access.update_config(value, new_pin)
 
     def get_transactions(self):
-        self.transaction_data_access.get_transactions()
+        return self.transaction_data_access.get_transactions()
+    
+    def create_product(self, name, price, stock, image_path):
+        return ProductManager().create_product(name, price, stock, image_path)
     
 class StatController:
-    def __init__(
-        self,
-        transaction_data_access: ITransactionDataAccess = None
-    ):
-        self.transaction_data_access = transaction_data_access
+    def __init__(self):
         self.salesCalc = SalesCalculator()
 
     def get_total_sales(self):
-        return self.salesCalc.get_total_sales(self.transaction_data_access.get_transactions())
+        return self.salesCalc.get_total_sales(TransactionManager.get_transactions())
     
     def get_sold_products(self):
-        return self.salesCalc.get_sold_products(self.transaction_data_access.get_transactions())
+        return self.salesCalc.get_sold_products(TransactionManager.get_transactions())
 
 class CoinController:
+    def __init__(self): 
+        self.coin_manager = CoinManager() 
+
     def get_availableCoins(self):
-        return [Coin(value) for value in Coin.available_coins]
+        return self.coin_manager.get_availableCoins() 
+
+class ProductController:
+    def __init__(self): 
+        self.product_manager = ProductManager() 
+
+    def create_product(self, name, price, stock, image_path):
+        return self.product_manager.create_product(name, price, stock, image_path)
+

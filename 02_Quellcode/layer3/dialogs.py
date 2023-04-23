@@ -1,9 +1,9 @@
 #Datei dialogs.py
 #File-imports
-from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
 from layer2.validator import DefaultProductValidator
-from layer3.controllers import ConfigController, StatController, CoinController
+from layer2.core_functions import ProductList
+from layer3.controllers import ConfigController, StatController, CoinController, ProductController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -239,12 +239,12 @@ class ConfigDialog(QDialog):
     def edit_product(self):
         row = self.product_table.currentRow()
         if row != -1:
-            edit_product_dialog = EditProductDialog(self, current_product=Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text()))
+            edit_product_dialog = EditProductDialog(self, current_product=self.configController.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text()))
             result = edit_product_dialog.exec_()
 
             if result == QDialog.Accepted:
                 edited_product = edit_product_dialog.get_product()
-                current_product = Product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
+                current_product = self.configController.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
                 success = self.configController.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
                 if success:
                     name_item = QTableWidgetItem(edited_product.name)
@@ -371,7 +371,8 @@ class ProductDialog(QDialog):
         price = self.price_edit.value()
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
-        return Product(name, price, stock, image_path)
+        return ProductController().create_product(name, price, stock, image_path)
+
 
 class AddProductDialog(ProductDialog):
     def get_dialog_title(self):

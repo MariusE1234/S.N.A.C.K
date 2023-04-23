@@ -1,3 +1,4 @@
+#Datei entities.py
 #libraries-imports
 import datetime
 
@@ -33,3 +34,7 @@ class Coin:
 
     def __str__(self):
         return f"{self.value} €"
+    
+    @classmethod
+    def get_availableCoins(cls):
+        return cls.available_coins

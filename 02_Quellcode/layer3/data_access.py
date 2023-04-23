@@ -1,7 +1,7 @@
 #Datei data_access.py
 #File-imports
-from layer1.entities import Transaction, Product
 from layer2.interfaces import IProductDataAccess, ITransactionDataAccess, IConfigDataAccess
+from layer2.core_functions import TransactionManager, ProductManager, CoinManager, TransactionLog
 #libraries-imports
 import datetime
 from sqlite3 import Error
@@ -9,6 +9,7 @@ from sqlite3 import Error
 class ProductDataAccess(IProductDataAccess):
     def __init__(self, conn):
         self.conn = conn
+        self.product_manager = ProductManager()
 
     def delete_product(self, product_name):
         try:
@@ -31,7 +32,7 @@ class ProductDataAccess(IProductDataAccess):
         cursor.execute("SELECT name, price, stock, image_path FROM products")
         rows = cursor.fetchall()
 
-        products = [Product(row[0], row[1], row[2], row[3]) for row in rows]
+        products = [self.product_manager.create_product(row[0], row[1], row[2], row[3]) for row in rows]
         return products
 
     def update_product(self, old_product, new_product):
@@ -85,7 +86,8 @@ class ProductDataAccess(IProductDataAccess):
 class TransactionDataAccess(ITransactionDataAccess):
     def __init__(self, conn):
         self.conn = conn
-
+        self.transaction_manager = TransactionManager(CoinManager(), self)
+        
     def add_transaction(self, transaction, remaining_stock):
         try:
             cursor = self.conn.cursor()
@@ -98,7 +100,7 @@ class TransactionDataAccess(ITransactionDataAccess):
         cursor = self.conn.cursor()
         cursor.execute("SELECT product_name, price, remaining_stock, datetime FROM transactions")
         rows = cursor.fetchall()
-        transactions = [Transaction(row[0], row[1], row[2], datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")) for row in rows]
+        transactions = [self.transaction_manager.create_transaction(row[0], row[1], row[2], datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S")) for row in rows]
         return transactions
 
 class ConfigDataAccess(IConfigDataAccess):
