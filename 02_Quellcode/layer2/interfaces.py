@@ -1,3 +1,4 @@
+#Datei interfaces.py
 #libraries-imports
 from abc import ABC, abstractmethod
 

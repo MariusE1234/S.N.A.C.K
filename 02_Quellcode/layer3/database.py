@@ -1,17 +1,18 @@
+#Datei database.py
 #File-imports
-from layer3.data_access import ProductDataAccess, TransactionDataAccess, ConfigDataAccess
+from layer2.interfaces import IDatabase, IProductDataAccess, ITransactionDataAccess, IConfigDataAccess
 #libraries-imports
 import sqlite3
 
 db_path = "03_SQL//database//vendingMachine.db"
 
-class Database:
-    def __init__(self):
+class Database(IDatabase):
+    def __init__(self, product_data_access: IProductDataAccess, transaction_data_access: ITransactionDataAccess, config_data_access: IConfigDataAccess):
         self.conn = sqlite3.connect(db_path)
         self.create_tables()
-        self.product_data_access = ProductDataAccess(self.conn)
-        self.transaction_data_access = TransactionDataAccess(self.conn)
-        self.config_data_access = ConfigDataAccess(self.conn)
+        self.product_data_access = product_data_access
+        self.transaction_data_access = transaction_data_access
+        self.config_data_access = config_data_access
         self.config_data_access.set_default_config()
 
     def create_tables(self):

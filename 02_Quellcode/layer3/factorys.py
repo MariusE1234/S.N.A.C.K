@@ -1,4 +1,5 @@
-# File-imports
+#Datei factorys.py
+#File-imports
 from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
 # Libraries-imports
 from abc import ABC, abstractmethod

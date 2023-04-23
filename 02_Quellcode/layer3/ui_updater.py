@@ -1,3 +1,4 @@
+#Datei ui_updater.py
 class UIUpdater:
     def __init__(self, products_groupbox, product_buttons, status_label, coin_label, product_button_factory):
         self.products_groupbox = products_groupbox

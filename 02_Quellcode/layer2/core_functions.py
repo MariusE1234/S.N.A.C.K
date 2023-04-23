@@ -1,3 +1,4 @@
+#Datei core_functions.py
 #File-imports
 from layer1.entities import Coin, Transaction
 from layer2.interfaces import ITransactionDataAccess, IProductDataAccess, IProductList, ITransactionLog

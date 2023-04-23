@@ -1,4 +1,5 @@
-# File-imports
+#Datei vending_machine.py
+#File-imports
 from layer2.interfaces import IProductList, ITransactionLog
 from layer2.core_functions import ProductManager, TransactionManager
 
