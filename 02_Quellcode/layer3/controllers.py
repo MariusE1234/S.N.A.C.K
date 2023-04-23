@@ -83,6 +83,9 @@ class ConfigController:
 
     def update_config(self, value, new_pin):
         self.config_data_access.update_config(value, new_pin)
+
+    def get_transactions(self):
+        self.transaction_data_access.get_transactions()
     
 class StatController:
     def __init__(
@@ -97,3 +100,7 @@ class StatController:
     
     def get_sold_products(self):
         return self.salesCalc.get_sold_products(self.transaction_data_access.get_transactions())
+
+class CoinController:
+    def get_availableCoins(self):
+        return [Coin(value) for value in Coin.available_coins]

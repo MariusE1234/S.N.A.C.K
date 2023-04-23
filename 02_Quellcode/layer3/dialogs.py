@@ -3,7 +3,7 @@
 from layer1.entities import Product, Coin
 from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList
 from layer2.validator import DefaultProductValidator
-from layer3.controllers import ConfigController, StatController
+from layer3.controllers import ConfigController, StatController, CoinController
 #libraries-imports
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator,QIcon,QPixmap
@@ -15,7 +15,7 @@ class CoinsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
         self.setWindowIcon(QIcon("04_Images//money_icon.jpg"))
-        self.coins = [Coin(value) for value in Coin.available_coins]
+        self.coinController = CoinController()
         self.selected_coin = None
         self.setup_ui()
 
@@ -24,7 +24,7 @@ class CoinsDialog(QDialog):
         layout = QVBoxLayout()
 
         coins_layout = QHBoxLayout()  # Ändern Sie das Layout von QGridLayout zu QHBoxLayout
-        for i, coin in enumerate(self.coins):
+        for i, coin in enumerate(self.coinController.get_availableCoins()):
             pixmap = QPixmap(f"04_Images//coin_{coin.value}.jpg")  # Pfad zum Bild der jeweiligen Münze
             pixmap = pixmap.scaled(50, 50, Qt.KeepAspectRatio)  # Skalieren Sie das Bild auf die gewünschte Größe
             icon = QIcon(pixmap)
@@ -197,7 +197,7 @@ class ConfigDialog(QDialog):
         transaction_layout.addWidget(transaction_label)
 
         self.transaction_list = QListWidget()
-        transaction_log = self.configController.transaction_data_access.get_transactions()
+        transaction_log = self.configController.get_transactions()
         if transaction_log:
             for transaction in transaction_log:
                 self.transaction_list.addItem(str(transaction))
