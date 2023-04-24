@@ -20,7 +20,7 @@ if __name__ == "__main__":
     transactioncontroller = TransactionController(db.get_TransactionDataAccess())
     statcontroller = StatController(transactioncontroller)
     coincontroller = CoinController()
-    configcontroller = ConfigController(productcontroller, transactioncontroller, db.get_ConfigDataAccess())
+    configcontroller = ConfigController(db.get_ConfigDataAccess())
     vmcontroller = VendingMachineController(db, coincontroller, transactioncontroller)
     
 

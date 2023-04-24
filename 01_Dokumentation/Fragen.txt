@@ -1,0 +1,1 @@
+- Macht es hinsichtlich hoher Kähäsion Sinn, die Dialog-Klassen in einzelne Datei zu verschieben?

@@ -36,19 +36,9 @@ class VendingMachineController:
 class ConfigController:
     def __init__(
         self,
-        productcontroller,
-        transactioncontroller,
         config_data_access: IConfigDataAccess,
     ):
-        self.productcontroller = productcontroller
-        self.tranactioncontroller = transactioncontroller
         self.config_data_access = config_data_access
-
-    def is_name_unique(self, name, product_table, exclude_row=None):
-        for row in range(product_table.rowCount()):
-            if row != exclude_row and product_table.item(row, 0).text() == name:
-                return False
-        return True
 
     def update_config(self, value, new_pin):
         self.config_data_access.update_config(value, new_pin)

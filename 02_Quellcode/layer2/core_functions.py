@@ -101,15 +101,16 @@ class TransactionManager:
         return Transaction.create(product_name, amount_paid, remaining_stock, timestamp)
 
 class SalesCalculator:
-    @staticmethod
-    def get_total_sales(transactions):
+    def __init__(self):
+        pass
+
+    def get_total_sales(self, transactions):
         total_sales = 0
         for transaction in transactions:
             total_sales += transaction.amount_paid
         return total_sales
     
-    @staticmethod
-    def get_sold_products(transactions):
+    def get_sold_products(self, transactions):
         sold_products = 0
         for transaction in transactions:
             sold_products += 1

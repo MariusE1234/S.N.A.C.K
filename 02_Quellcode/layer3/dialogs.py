@@ -370,6 +370,10 @@ class ProductDialog(QDialog):
     def save_product(self):
         pass
 
+    @abstractmethod
+    def validate_input(self, name, image_path):
+        pass
+
     def get_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
@@ -387,20 +391,26 @@ class AddProductDialog(ProductDialog):
     def get_submit_button_text(self):
         return "Hinzufügen"
 
+    def validate_input(self, name, image_path):
+        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names)
+        if not valid_name:
+            QMessageBox.warning(self, "Fehler", name_error_msg)
+            return False
+
+        valid_image_path, image_path_error_msg = DefaultProductValidator.is_valid_image_path(image_path)
+        if not valid_image_path:
+            QMessageBox.warning(self, "Fehler", image_path_error_msg)
+            return False
+
+        return True
+
     def save_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names)
-        if not valid_name:
-            QMessageBox.warning(self, "Fehler", name_error_msg)
-            return
-
-        valid_image_path, image_path_error_msg = DefaultProductValidator.is_valid_image_path(image_path)
-        if not valid_image_path:
-            QMessageBox.warning(self, "Fehler", image_path_error_msg)
+        if not self.validate_input(name, image_path):
             return
 
         self.accept()
@@ -415,15 +425,21 @@ class EditProductDialog(ProductDialog):
     def get_submit_button_text(self):
         return "Speichern"
 
+    def validate_input(self, name, image_path):
+        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names, self.current_product)
+        if not valid_name:
+            QMessageBox.warning(self, "Fehler", name_error_msg)
+            return False
+
+        return True
+
     def save_product(self):
         name = self.name_edit.text().strip()
         price = self.price_edit.value()
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
 
-        valid_name, name_error_msg = DefaultProductValidator.is_valid_name(name, self.existing_names, self.current_product)
-        if not valid_name:
-            QMessageBox.warning(self, "Fehler", name_error_msg)
+        if not self.validate_input(name, image_path):
             return
 
         self.current_product.name = name
