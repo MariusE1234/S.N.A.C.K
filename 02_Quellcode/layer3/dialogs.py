@@ -305,7 +305,13 @@ class ProductDialog(QDialog):
 
         self.name_label, self.name_edit = self.create_input_field(layout, "Produktname:", QLineEdit(), 0)
         self.price_label, self.price_edit = self.create_input_field(layout, "Preis:", QDoubleSpinBox(), 1)
+        self.price_edit.setSingleStep(0.5)  # Setze den Schrittweite auf 0,5 Euro
+        self.price_edit.setDecimals(2)  # Setze die Anzahl der Nachkommastellen auf 2
+        self.price_edit.setMinimum(0.00)  # Setze das Minimum auf 0 €
+        self.price_edit.setMaximum(500) # Setze Maxmimum auf 500 €
         self.stock_label, self.stock_edit = self.create_input_field(layout, "Bestand:", QSpinBox(), 2)
+        self.stock_edit.setMinimum(0)  # Setze das Minimum auf 0
+        self.stock_edit.setMaximum(999) # Setze Maxmimum auf 999
 
         self.image_label, self.image_path_edit = self.create_input_field(layout, "Bild:", QLineEdit(), 3)
         self.image_path_edit.setReadOnly(True)
