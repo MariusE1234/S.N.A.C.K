@@ -144,14 +144,10 @@ class ConfigDialog(QDialog):
         self.product_table.verticalHeader().setVisible(False)
 
         for i, product in enumerate(product_list):
-            name_item = QTableWidgetItem(product.name)
-            price_item = QTableWidgetItem(str(product.price))
-            stock_item = QTableWidgetItem(str(product.stock))
-            image_path_item = QTableWidgetItem(product.image_path)
-            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-            price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
-            stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
-            image_path_item.setFlags(image_path_item.flags() & ~Qt.ItemIsEditable)
+            name_item = self.create_non_editable_table_item(product.name)
+            price_item = self.create_non_editable_table_item(str(product.price))
+            stock_item = self.create_non_editable_table_item(str(product.stock))
+            image_path_item = self.create_non_editable_table_item(product.image_path)
             self.product_table.setItem(i, 0, name_item)
             self.product_table.setItem(i, 1, price_item)
             self.product_table.setItem(i, 2, stock_item)
@@ -213,6 +209,10 @@ class ConfigDialog(QDialog):
         layout.addLayout(transaction_layout)
         self.setLayout(layout)
 
+    def create_non_editable_table_item(self, text):
+        item = QTableWidgetItem(text)
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        return item
 
     def add_product(self):
         add_product_dialog = AddProductDialog(productcontroller=self.productcontroller)
@@ -224,14 +224,10 @@ class ConfigDialog(QDialog):
             if success:
                 row = self.product_table.rowCount()
                 self.product_table.setRowCount(row + 1)
-                name_item = QTableWidgetItem(new_product.name)
-                price_item = QTableWidgetItem(str(new_product.price))
-                stock_item = QTableWidgetItem(str(new_product.stock))
-                image_item = QTableWidgetItem(new_product.image_path)
-                name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-                price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
-                stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
-                image_item.setFlags(image_item.flags() & ~Qt.ItemIsEditable)
+                name_item = self.create_non_editable_table_item(new_product.name)
+                price_item = self.create_non_editable_table_item(str(new_product.price))
+                stock_item = self.create_non_editable_table_item(str(new_product.stock))
+                image_item = self.create_non_editable_table_item(new_product.image_path)
                 self.product_table.setItem(row, 0, name_item)
                 self.product_table.setItem(row, 1, price_item)
                 self.product_table.setItem(row, 2, stock_item)
@@ -250,14 +246,10 @@ class ConfigDialog(QDialog):
                 current_product = self.productcontroller.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
                 success = self.productcontroller.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
                 if success:
-                    name_item = QTableWidgetItem(edited_product.name)
-                    price_item = QTableWidgetItem(str(edited_product.price))
-                    stock_item = QTableWidgetItem(str(edited_product.stock))
-                    image_item = QTableWidgetItem(edited_product.image_path)
-                    name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-                    price_item.setFlags(price_item.flags() & ~Qt.ItemIsEditable)
-                    stock_item.setFlags(stock_item.flags() & ~Qt.ItemIsEditable)
-                    image_item.setFlags(image_item.flags() & ~Qt.ItemIsEditable)
+                    name_item = self.create_non_editable_table_item(edited_product.name)
+                    price_item = self.create_non_editable_table_item(str(edited_product.price))
+                    stock_item = self.create_non_editable_table_item(str(edited_product.stock))
+                    image_item = self.create_non_editable_table_item(edited_product.image_path)
                     self.product_table.setItem(row, 0, name_item)
                     self.product_table.setItem(row, 1, price_item)
                     self.product_table.setItem(row, 2, stock_item)
@@ -311,29 +303,12 @@ class ProductDialog(QDialog):
     def setup_ui(self):
         layout = QGridLayout()
 
-        self.name_label = QLabel("Produktname:")
-        layout.addWidget(self.name_label, 0, 0)
-        self.name_edit = QLineEdit()
-        layout.addWidget(self.name_edit, 0, 1)
+        self.name_label, self.name_edit = self.create_input_field(layout, "Produktname:", QLineEdit(), 0)
+        self.price_label, self.price_edit = self.create_input_field(layout, "Preis:", QDoubleSpinBox(), 1)
+        self.stock_label, self.stock_edit = self.create_input_field(layout, "Bestand:", QSpinBox(), 2)
 
-        self.price_label = QLabel("Preis:")
-        layout.addWidget(self.price_label, 1, 0)
-        self.price_edit = QDoubleSpinBox()
-        self.price_edit.setRange(0.00, 999.99)
-        self.price_edit.setSingleStep(0.50)
-        layout.addWidget(self.price_edit, 1, 1)
-
-        self.stock_label = QLabel("Bestand:")
-        layout.addWidget(self.stock_label, 2, 0)
-        self.stock_edit = QSpinBox()
-        self.stock_edit.setRange(0, 999)
-        layout.addWidget(self.stock_edit, 2, 1)
-
-        self.image_label = QLabel("Bild:")
-        layout.addWidget(self.image_label, 3, 0)
-        self.image_path_edit = QLineEdit()
+        self.image_label, self.image_path_edit = self.create_input_field(layout, "Bild:", QLineEdit(), 3)
         self.image_path_edit.setReadOnly(True)
-        layout.addWidget(self.image_path_edit, 3, 1)
         self.choose_image_button = QPushButton("Bild auswählen")
         self.choose_image_button.clicked.connect(self.choose_image)
         layout.addWidget(self.choose_image_button, 3, 2)
@@ -353,6 +328,12 @@ class ProductDialog(QDialog):
             self.price_edit.setValue(self.current_product.price)
             self.stock_edit.setValue(self.current_product.stock)
             self.image_path_edit.setText(self.current_product.image_path)
+
+    def create_input_field(self, layout, label_text, input_widget, row):
+        label = QLabel(label_text)
+        layout.addWidget(label, row, 0)
+        layout.addWidget(input_widget, row, 1)
+        return label, input_widget
 
     def choose_image(self):
         options = QFileDialog.Options()

@@ -76,7 +76,7 @@ class ProductManager:
         product_list.save_products(product_list.products)
     
     def create_product(self, name, price, stock, image_path):
-        return Product.create(name, price, stock, image_path)
+        return Product(name, price, stock, image_path)
     
     def get_selected_product(self):
         return self.selected_product
@@ -98,7 +98,7 @@ class TransactionManager:
         return self.transaction_log.get_transactions()
     
     def create_transaction(self, product_name, amount_paid, remaining_stock, timestamp):
-        return Transaction.create(product_name, amount_paid, remaining_stock, timestamp)
+        return Transaction(product_name, amount_paid, remaining_stock, timestamp)
 
 class SalesCalculator:
     def __init__(self):

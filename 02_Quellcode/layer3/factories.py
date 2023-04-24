@@ -1,4 +1,4 @@
-#Datei factorys.py
+#Datei factories.py
 # Libraries-imports
 from abc import ABC, abstractmethod
 from PyQt5.QtCore import QSize

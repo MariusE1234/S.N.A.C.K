@@ -1,7 +1,7 @@
 #Datei data_access.py
 #File-imports
 from layer2.interfaces import IProductDataAccess, ITransactionDataAccess, IConfigDataAccess
-from layer2.core_functions import TransactionManager, ProductManager, CoinManager, TransactionLog
+from layer2.core_functions import TransactionManager, ProductManager
 #libraries-imports
 import datetime
 from sqlite3 import Error

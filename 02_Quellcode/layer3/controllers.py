@@ -1,12 +1,8 @@
 #Datei controllers.py
 #File-imports
-from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IProductList, ITransactionLog
-from layer2.core_functions import SalesCalculator, ProductManager,TransactionManager, CoinManager, TransactionLog
-# File-imports
-from layer2.interfaces import IDatabase
-from layer2.core_functions import ProductList, TransactionLog
+from layer2.interfaces import IConfigDataAccess,IProductDataAccess, ITransactionDataAccess, IDatabase
+from layer2.core_functions import SalesCalculator, ProductManager,TransactionManager, CoinManager, TransactionLog, ProductList
 from layer2.vending_machine import VendingMachine
-
 
 class VendingMachineController:
     def __init__(self, db: IDatabase, coinmanager, transactionmanager):
