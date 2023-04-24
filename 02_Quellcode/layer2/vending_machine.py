@@ -7,12 +7,12 @@ class VendingMachine:
     def __init__(
         self,
         product_list: IProductList,
-        coin_manager,
+        coinmanager,
         transactionmanager
     ):  # Dependency Injection
         self.productList = product_list
         self.product_manager = ProductManager()
-        self.coinmanager = coin_manager
+        self.coinmanager = coinmanager
         self.transaction_manager = transactionmanager
 
     def select_product(self, product):
