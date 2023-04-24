@@ -2,7 +2,7 @@
 #File-imports
 from layer3.database import Database
 from layer3.controllers import VendingMachineController, ConfigController, StatController, CoinController, ProductController, TransactionController
-from layer3.factorys import DefaultProductButtonFactory, DefaultCoinsDialogFactory, DefaultPinDialogFactory, DefaultConfigDialogFactory, DefaultInfoDialogFactory
+from layer3.factories import DefaultProductButtonFactory, DefaultCoinsDialogFactory, DefaultPinDialogFactory, DefaultConfigDialogFactory, DefaultInfoDialogFactory
 from layer3.data_access import ProductDataAccess, TransactionDataAccess, ConfigDataAccess
 from layer3.ui import VendingMachineGUI
 #libraries-imports

@@ -1,7 +1,7 @@
 #Datei ui.py
 #File-imports
 from layer3.controllers import VendingMachineController
-from layer3.factorys import ProductButtonFactory, CoinsDialogFactory, PinDialogFactory, ConfigDialogFactory, InfoDialogFactory
+from layer3.factories import ProductButtonFactory, CoinsDialogFactory, PinDialogFactory, ConfigDialogFactory, InfoDialogFactory
 from layer3.ui_updater import UIUpdater
 from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
 # libraries-imports
