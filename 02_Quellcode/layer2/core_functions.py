@@ -85,12 +85,11 @@ class ProductManager:
         self.selected_product = None
 
 class TransactionManager:
-    def __init__(self, coin_manager, transaction_log: ITransactionLog):
-        self.coin_manager = coin_manager
+    def __init__(self,transaction_log: ITransactionLog):
+        #self.coin_manager = coin_manager
         self.transaction_log = transaction_log
 
-    def buy_product(self, product):
-        self.coin_manager.sub_coin(product.price)
+    def add_transaction(self, product):
         remaining_stock = product.stock - 1
         transaction = Transaction(product.name, product.price, remaining_stock)
         self.transaction_log.add_transaction(transaction)

@@ -1,18 +1,19 @@
 #Datei vending_machine.py
 #File-imports
 from layer2.interfaces import IProductList, ITransactionLog
-from layer2.core_functions import ProductManager, TransactionManager
+from layer2.core_functions import ProductManager, TransactionManager, CoinManager
 
 class VendingMachine:
     def __init__(
         self,
         product_list: IProductList,
         coin_manager,
-        transaction_log: ITransactionLog
+        transactionmanager
     ):  # Dependency Injection
         self.productList = product_list
         self.product_manager = ProductManager()
-        self.transaction_manager = TransactionManager(coin_manager, transaction_log)
+        self.coinmanager = coin_manager
+        self.transaction_manager = transactionmanager
 
     def select_product(self, product):
         self.product_manager.select_product(product)
@@ -21,12 +22,13 @@ class VendingMachine:
         selected_product = self.product_manager.get_selected_product()
         if selected_product is None:
             return "Bitte wählen Sie ein Produkt aus."
-        if selected_product.price > self.transaction_manager.coin_manager.get_total_amount():
+        if selected_product.price > self.coinmanager.get_total_amount():
             return "Sie haben nicht genug Geld eingeworfen."
         if selected_product.stock <= 0:
             return "Dieses Produkt ist leider nicht mehr vorrätig."
 
-        self.transaction_manager.buy_product(selected_product)
+        self.transaction_manager.add_transaction(selected_product)
+        self.coinmanager.sub_coin(selected_product.price)
         self.product_manager.update_stock(self.productList)
         self.product_manager.reset_selected_product()
 

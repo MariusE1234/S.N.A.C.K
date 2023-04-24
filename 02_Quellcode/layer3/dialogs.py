@@ -11,11 +11,11 @@ from PyQt5.QtWidgets import QLabel, QDialog, QTableWidgetItem, QPushButton, QGri
 from abc import abstractmethod
 
 class CoinsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, coinController, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Münzen einwerfen")
         self.setWindowIcon(QIcon("04_Images//money_icon.jpg"))
-        self.coinController = CoinController()
+        self.coinController = coinController
         self.selected_coin = None
         self.setup_ui()
 
@@ -110,23 +110,26 @@ class PinDialog(QDialog):
 class ConfigDialog(QDialog):
     def __init__(
         self,
-        product_list: IProductList = None,
-        transaction_data_access: ITransactionDataAccess = None,
-        product_data_access: IProductDataAccess = None,
-        config_data_access: IConfigDataAccess = None,
+        vmcontroller,
+        configcontroller,
+        productcontroller,
+        transactioncontroller,
         parent=None
     ):
         super().__init__(parent)
         self.setWindowTitle("Konfigurationsmenü")
         self.setWindowIcon(QIcon("04_Images//config_icon.png"))
-        self.transaction_data_access = transaction_data_access
-        self.configController = ConfigController(product_list, transaction_data_access, product_data_access, config_data_access)
+        self.vmcontroller = vmcontroller
+        self.configcontroller = configcontroller
+        self.productcontroller = productcontroller
+        self.transactioncontroller = transactioncontroller
         self.setup_ui()
 
     def setup_ui(self):
         layout = QHBoxLayout()
 
         # Produkte
+        product_list = self.productcontroller.get_products()
         product_layout = QVBoxLayout()
         product_label = QLabel("Produkte")
         product_layout.addWidget(product_label)
@@ -136,11 +139,11 @@ class ConfigDialog(QDialog):
         self.product_table.setColumnWidth(1, 200)
         self.product_table.setColumnWidth(2, 200)
         self.product_table.setColumnWidth(3, 400)
-        self.product_table.setRowCount(len(self.configController.product_list.products))
+        self.product_table.setRowCount(len(product_list))
         self.product_table.setHorizontalHeaderLabels(["Produktname", "Preis", "Bestand", "Bildpfad"])
         self.product_table.verticalHeader().setVisible(False)
 
-        for i, product in enumerate(self.configController.product_list.products):
+        for i, product in enumerate(product_list):
             name_item = QTableWidgetItem(product.name)
             price_item = QTableWidgetItem(str(product.price))
             stock_item = QTableWidgetItem(str(product.stock))
@@ -197,7 +200,7 @@ class ConfigDialog(QDialog):
         transaction_layout.addWidget(transaction_label)
 
         self.transaction_list = QListWidget()
-        transaction_log = self.configController.get_transactions()
+        transaction_log = self.transactioncontroller.get_transactions()
         if transaction_log:
             for transaction in transaction_log:
                 self.transaction_list.addItem(str(transaction))
@@ -212,12 +215,12 @@ class ConfigDialog(QDialog):
 
 
     def add_product(self):
-        add_product_dialog = AddProductDialog(self)
+        add_product_dialog = AddProductDialog(productcontroller=self.productcontroller)
         result = add_product_dialog.exec_()
 
         if result == QDialog.Accepted:
             new_product = add_product_dialog.get_product()
-            success = self.configController.add_product(new_product, self.product_table)
+            success = self.productcontroller.add_product(new_product, self.product_table)
             if success:
                 row = self.product_table.rowCount()
                 self.product_table.setRowCount(row + 1)
@@ -239,13 +242,13 @@ class ConfigDialog(QDialog):
     def edit_product(self):
         row = self.product_table.currentRow()
         if row != -1:
-            edit_product_dialog = EditProductDialog(self, current_product=self.configController.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text()))
+            edit_product_dialog = EditProductDialog(productcontroller=self.productcontroller, current_product=self.productcontroller.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text()))
             result = edit_product_dialog.exec_()
 
             if result == QDialog.Accepted:
                 edited_product = edit_product_dialog.get_product()
-                current_product = self.configController.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
-                success = self.configController.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
+                current_product = self.productcontroller.create_product(self.product_table.item(row, 0).text(), float(self.product_table.item(row, 1).text()), int(self.product_table.item(row, 2).text()), self.product_table.item(row, 3).text())
+                success = self.productcontroller.edit_product(current_product, edited_product, self.product_table, exclude_row=row)
                 if success:
                     name_item = QTableWidgetItem(edited_product.name)
                     price_item = QTableWidgetItem(str(edited_product.price))
@@ -266,7 +269,7 @@ class ConfigDialog(QDialog):
         row = self.product_table.currentRow()
         if row != -1:
             product_name = self.product_table.item(row, 0).text()
-            self.configController.delete_product(product_name)
+            self.productcontroller.delete_product(product_name)
             self.product_table.removeRow(row)
 
     def change_pin(self):
@@ -277,21 +280,22 @@ class ConfigDialog(QDialog):
         
         if result == QDialog.Accepted:
             new_pin = new_pin_dialog.get_pin()
-            self.configController.update_config("pin", new_pin)  
+            self.configcontroller.update_config("pin", new_pin)  
             QMessageBox.information(self, "Erfolg", "Die PIN wurde erfolgreich geändert.")
 
     def get_products_from_table(self):
-        return self.configController.get_products_from_table(self.product_table)
+        return self.productcontroller.get_products_from_table(self.product_table)
         
     def show_stat_dialog(self):
-        stat_dialog = StatDialog(self, self.transaction_data_access)
+        stat_dialog = StatDialog(self, self.transactioncontroller)
         stat_dialog.exec_()
 
 class ProductDialog(QDialog):
-    def __init__(self, parent=None, existing_names=None, current_product=None):
+    def __init__(self, productcontroller, parent=None, existing_names=None, current_product=None):
         super().__init__(parent)
         self.existing_names = existing_names if existing_names else []
         self.current_product = current_product
+        self.productcontroller = productcontroller
         self.setWindowTitle(self.get_dialog_title())
         self.setWindowIcon(QIcon(self.get_dialog_icon()))
         self.setup_ui()
@@ -371,8 +375,7 @@ class ProductDialog(QDialog):
         price = self.price_edit.value()
         stock = self.stock_edit.value()
         image_path = self.image_path_edit.text().strip()
-        return ProductController().create_product(name, price, stock, image_path)
-
+        return self.productcontroller.create_product(name, price, stock, image_path)
 
 class AddProductDialog(ProductDialog):
     def get_dialog_title(self):
@@ -514,8 +517,8 @@ class InfoDialog(QDialog):
         feedback_dialog.exec()
 
 class StatDialog(QDialog):
-    def __init__(self, parent, transaction_data_access):
-        statController = StatController(transaction_data_access)
+    def __init__(self, parent, transactioncontroller):
+        statController = StatController(transactioncontroller)
         super().__init__(parent)
         self.setWindowTitle("Statistik")
         layout = QGridLayout()

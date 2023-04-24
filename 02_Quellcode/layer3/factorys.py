@@ -25,14 +25,14 @@ class DefaultProductButtonFactory(ProductButtonFactory):
 class CoinsDialogFactory(ABC):
 
     @abstractmethod
-    def create_coins_dialog(self, CoinsDialog):
+    def create_coins_dialog(self, coincontroller, CoinsDialog):
         pass
 
 
 class DefaultCoinsDialogFactory(CoinsDialogFactory):
 
-    def create_coins_dialog(self, CoinsDialog):
-        return CoinsDialog()
+    def create_coins_dialog(self, coincontroller, CoinsDialog):
+        return CoinsDialog(coincontroller)
 
 
 class PinDialogFactory(ABC):
@@ -51,14 +51,14 @@ class DefaultPinDialogFactory(PinDialogFactory):
 class ConfigDialogFactory(ABC):
 
     @abstractmethod
-    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access, ConfigDialog):
+    def create_config_dialog(self, vmcontroller, configcontroller, productcontroller, transactioncontroller, ConfigDialog):
         pass
 
 
 class DefaultConfigDialogFactory(ConfigDialogFactory):
 
-    def create_config_dialog(self, product_list, transaction_data_access, product_data_access, config_data_access, ConfigDialog):
-        return ConfigDialog(product_list, transaction_data_access, product_data_access, config_data_access)
+    def create_config_dialog(self, vmcontroller, configcontroller, productcontroller, transactioncontroller, ConfigDialog):
+        return ConfigDialog(vmcontroller, configcontroller, productcontroller, transactioncontroller)
 
 
 class InfoDialogFactory(ABC):

@@ -86,7 +86,7 @@ class ProductDataAccess(IProductDataAccess):
 class TransactionDataAccess(ITransactionDataAccess):
     def __init__(self, conn):
         self.conn = conn
-        self.transaction_manager = TransactionManager(CoinManager(), self)
+        self.transaction_manager = TransactionManager([])
         
     def add_transaction(self, transaction, remaining_stock):
         try:
