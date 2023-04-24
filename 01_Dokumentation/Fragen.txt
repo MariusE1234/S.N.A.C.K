@@ -1,1 +1,2 @@
 - Macht es hinsichtlich hoher Kähäsion Sinn, die Dialog-Klassen in einzelne Datei zu verschieben?
+- Bei Programmin Principles für die Doku einfach Beispiele raussuchen?
