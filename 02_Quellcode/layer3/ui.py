@@ -2,9 +2,11 @@
 from layer3.controllers import VendingMachineController
 from layer3.factories import ProductButtonFactory, CoinsDialogFactory, PinDialogFactory, ConfigDialogFactory, InfoDialogFactory
 from layer3.ui_updater import UIUpdater
-from layer3.dialogs import CoinsDialog, PinDialog, ConfigDialog, InfoDialog
+from layer3.dialogs.coins import CoinsDialog
+from layer3.dialogs.pin import PinDialog
+from layer3.dialogs.config import ConfigDialog
+from layer3.dialogs.info import InfoDialog
 # Libraries-imports
-from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QDialog, QPushButton, QGridLayout, QWidget, QMessageBox, QGroupBox
 
