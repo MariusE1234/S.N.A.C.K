@@ -1,2 +1,4 @@
 - Macht es hinsichtlich hoher Kähäsion Sinn, die Dialog-Klassen in einzelne Datei zu verschieben?
 - Bei Programmin Principles für die Doku einfach Beispiele raussuchen?
+- oder für alles im Code gewählte Programming Principles anwenden ?
+- das gleiche für Refactoring an den gesamten code oder gewählte Beispiele?
