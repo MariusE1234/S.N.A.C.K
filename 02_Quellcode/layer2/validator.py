@@ -4,7 +4,7 @@ from layer2.interfaces import IProductValidator
 class DefaultProductValidator(IProductValidator):
     @staticmethod
     def is_valid_name(name, existing_names, current_product=None):
-        if not name:
+        if not name or name.isspace():
             return False, "Der Produktname darf nicht leer sein."
         if name in existing_names and (current_product is None or current_product.name != name):
             return False, "Der Produktname ist bereits vorhanden."

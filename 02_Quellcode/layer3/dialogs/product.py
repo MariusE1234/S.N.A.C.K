@@ -24,6 +24,18 @@ class ProductDialog(QDialog):
     def get_dialog_icon(self):
         pass
 
+    @abstractmethod
+    def get_submit_button_text(self):
+        pass
+
+    @abstractmethod
+    def save_product(self):
+        pass
+
+    @abstractmethod
+    def validate_input(self, name, image_path):
+        pass
+
     def setup_ui(self):
         layout = QGridLayout()
 
@@ -72,18 +84,6 @@ class ProductDialog(QDialog):
                                                    "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
         if file_name:
             self.image_path_edit.setText(file_name)
-
-    @abstractmethod
-    def get_submit_button_text(self):
-        pass
-
-    @abstractmethod
-    def save_product(self):
-        pass
-
-    @abstractmethod
-    def validate_input(self, name, image_path):
-        pass
 
     def get_product(self):
         name = self.name_edit.text().strip()

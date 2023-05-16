@@ -9,7 +9,7 @@ class VendingMachine:
         product_list: IProductList,
         coinmanager,
         transactionmanager
-    ):  # Dependency Injection
+    ): 
         self.productList = product_list
         self.product_manager = ProductManager()
         self.coinmanager = coinmanager
