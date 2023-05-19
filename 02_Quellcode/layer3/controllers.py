@@ -12,8 +12,17 @@ class VendingMachineController:
         self.product_list = ProductList(self.product_data_access)
         self.coin_manager = coinmanager
         self.transactionmanager = transactionmanager
+        self.observers = []
         self.vending_machine = VendingMachine(self.product_list, self.coin_manager, self.transactionmanager)
 
+    
+    def add_observer(self, observer):
+        self.observers.append(observer)
+        
+    def notify_observers(self, notification_type, *args):
+        for observer in self.observers:
+            observer.update(notification_type, *args)
+            
     def get_products(self):
         return self.vending_machine.get_products()
 

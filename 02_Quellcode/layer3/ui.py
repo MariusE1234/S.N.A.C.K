@@ -77,8 +77,10 @@ class VendingMachineGUI(QWidget):
         self.ui_updater.update_product_buttons(self.vmcontroller, self.select_product)
 
         self.setLayout(layout)
+        self.vmcontroller.add_observer(self.ui_updater)
 
     def select_product(self, product):
+        self.vmcontroller.notify_observers("status_label", f"Bitte werfen Sie {product.price} € ein.")
         self.vmcontroller.select_product(product)
         self.ui_updater.update_status_label(f"Bitte werfen Sie {product.price} € ein.")
 
@@ -93,6 +95,7 @@ class VendingMachineGUI(QWidget):
         if dialog.exec_() == QDialog.Accepted:
             self.coincontroller.add_coin(dialog.selected_coin)
             amount = self.coincontroller.get_total_amount()
+            self.vmcontroller.notify_observers("coin_label", amount)
             self.ui_updater.update_coin_label(amount)
 
     def show_config_dialog(self):
@@ -102,9 +105,11 @@ class VendingMachineGUI(QWidget):
                 new_products = dialog.get_products_from_table()
                 self.vmcontroller.product_list.delete_products()
                 self.vmcontroller.product_list.save_products(new_products)
+                self.vmcontroller.notify_observers("product_buttons", self.vmcontroller, self.select_product)
                 self.refresh_product_buttons()
 
     def refresh_product_buttons(self):
+        self.vmcontroller.notify_observers("product_buttons", self.vmcontroller, self.select_product)
         self.ui_updater.update_product_buttons(self.vmcontroller, self.select_product)
 
     def show_pin_dialog(self):

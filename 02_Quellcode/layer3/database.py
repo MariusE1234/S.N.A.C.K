@@ -6,14 +6,25 @@ import sqlite3
 
 db_path = "03_SQL//database//vendingMachine.db"
 
+
 class Database(IDatabase):
+    _instance = None
+
+    def __new__(cls,product_data_access: IProductDataAccess, transaction_data_access: ITransactionDataAccess, config_data_access: IConfigDataAccess):
+        if cls._instance is None:
+            cls._instance = super(Database, cls).__new__(cls)
+            cls._instance.__initialized = False
+        return cls._instance
+
     def __init__(self, product_data_access: IProductDataAccess, transaction_data_access: ITransactionDataAccess, config_data_access: IConfigDataAccess):
+        if self.__initialized: return
         self.conn = sqlite3.connect(db_path)
         self.create_tables()
         self.product_data_access = product_data_access
         self.transaction_data_access = transaction_data_access
         self.config_data_access = config_data_access
         self.config_data_access.set_default_config()
+        self.__initialized = True
 
     def create_tables(self):
         self.conn.execute(
@@ -49,10 +60,12 @@ class Database(IDatabase):
 
     def get_ProductDataAccess(self):
         return self.product_data_access
-    
+
     def get_TransactionDataAccess(self):
         return self.transaction_data_access
 
     def get_ConfigDataAccess(self):
         return self.config_data_access
+
+
 
