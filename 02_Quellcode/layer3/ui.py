@@ -52,8 +52,6 @@ class VendingMachineGUI(QWidget):
         self.products_groupbox.setLayout(products_layout)
         layout.addWidget(self.products_groupbox, 1, 0, 1, 3)
 
-
-
         self.coin_button = QPushButton("Münzen einwerfen")
         self.coin_button.clicked.connect(self.show_coin_dialog)
         layout.addWidget(self.coin_button, 2, 3)
